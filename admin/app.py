@@ -13,8 +13,8 @@ app = Flask(__name__)
 model = None
 vectorizer = None
 
-model_path = os.path.join("admin", "model", "model.pkl")
-vectorizer_path = os.path.join("admin", "model", "vectorizer.pkl")
+model_path = os.path.join( "model", "model.pkl")
+vectorizer_path = os.path.join("model", "vectorizer.pkl")
 
 if os.path.exists(model_path) and os.path.exists(vectorizer_path):
     model = joblib.load(model_path)

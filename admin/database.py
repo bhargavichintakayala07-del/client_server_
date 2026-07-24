@@ -37,6 +37,8 @@ def save_log(time, ip, website, category, decision, server):
 
 
 create_database()
+
+
 def get_logs():
 
     connection = sqlite3.connect("logs.db")
