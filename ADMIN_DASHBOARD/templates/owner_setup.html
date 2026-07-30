@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETFLOW-AI - Owner Setup</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #07080a;
+            --card-glass: rgba(18, 22, 29, 0.95);
+            --border-silver: rgba(255, 255, 255, 0.12);
+            --text-main: #f8fafc;
+            --text-muted: #8e95a5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px 20px; }
+
+        .setup-card {
+            background: var(--card-glass);
+            border: 1px solid var(--border-silver);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 720px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .setup-header { text-align: center; margin-bottom: 28px; }
+        .setup-header h2 { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+        .setup-header p { font-size: 14px; color: var(--text-muted); }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+        .full-width { grid-column: span 2; }
+
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 11px; font-weight: 800; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .form-control {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-silver);
+            color: #fff;
+            padding: 13px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        select.form-control option { background: #0e1217; color: #fff; }
+
+        .router-block {
+            background: rgba(5, 6, 8, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .router-block-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            color: #0c0d10;
+            padding: 16px;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+    <div class="setup-card">
+        <div class="setup-header">
+            <h2>WiFiHub Owner Profile & Hardware Setup</h2>
+            <p>Configure network nodes and hardware gateway credentials</p>
+        </div>
+
+        <form id="setupForm" onsubmit="saveSetupDetails(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Owner Full Name</label>
+                    <input type="text" id="ownerName" class="form-control" placeholder="Bhargavi" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="text" id="ownerPhone" class="form-control" placeholder="9999999999" required>
+                </div>
+
+                <div class="form-group">
+                    <label>City / Location</label>
+                    <input type="text" id="ownerCity" class="form-control" placeholder="Vijayawada" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Organization Type</label>
+                    <input type="text" id="orgType" class="form-control" placeholder="NRI Institution" required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Total Active Routers / Hotspot Nodes</label>
+                    <select id="routersCountSelect" class="form-control" onchange="generateRouterFields()">
+                        <option value="1">1 Router / Hotspot Node</option>
+                        <option value="2" selected>2 Router Nodes</option>
+                        <option value="3">3 Router Nodes</option>
+                        <option value="4">4 Router Nodes</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Router Inputs -->
+            <div id="routerFieldsContainer"></div>
+
+            <button type="submit" class="btn-submit">
+                Save & Launch Control Center <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function generateRouterFields() {
+            const count = parseInt(document.getElementById('routersCountSelect').value);
+            const container = document.getElementById('routerFieldsContainer');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= count; i++) {
+                const block = document.createElement('div');
+                block.className = 'router-block';
+                
+                const defaultSsid = i === 1 ? 'Laptop_A_Hotspot' : (i === 2 ? 'CSM_Wi-Fi' : `Node_${i}_Net`);
+                const defaultIp = i === 1 ? '192.168.137.1' : `192.168.1.${i}`;
+
+                block.innerHTML = `
+                    <div class="router-block-title">
+                        <i class="fa-solid fa-wifi"></i> Router / Hotspot #${i} Credentials
+                    </div>
+                    <div class="form-grid" style="margin-bottom: 0;">
+                        <div class="form-group">
+                            <label>Router #${i} SSID / Name *</label>
+                            <input type="text" id="router_ssid_${i}" class="form-control" value="${defaultSsid}" placeholder="Enter SSID Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Router #${i} Gateway IP *</label>
+                            <input type="text" id="router_ip_${i}" class="form-control" value="${defaultIp}" placeholder="192.168.137.1" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Router #${i} Security Password *</label>
+                            <input type="password" id="router_pwd_${i}" class="form-control" value="12345678" placeholder="Enter Wi-Fi password" required>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(block);
+            }
+        }
+
+        async function saveSetupDetails(event) {
+            event.preventDefault();
+            const count = parseInt(document.getElementById('routersCountSelect').value);
+            const routers = [];
+
+            for (let i = 1; i <= count; i++) {
+                routers.push({
+                    name: document.getElementById(`router_ssid_${i}`).value,
+                    ip: document.getElementById(`router_ip_${i}`).value,
+                    password: document.getElementById(`router_pwd_${i}`).value
+                });
+            }
+
+            const payload = {
+                name: document.getElementById('ownerName').value,
+                phone: document.getElementById('ownerPhone').value,
+                city: document.getElementById('ownerCity').value,
+                org_type: document.getElementById('orgType').value,
+                routers: routers
+            };
+
+            try {
+                const response = await fetch('/api/save_setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await response.json();
+                if (res.success) {
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Save failed: ' + res.message);
+                }
+            } catch (e) {
+                // If backend API isn't live yet, fallback direct redirect for UI preview
+                window.location.href = '/dashboard';
+            }
+        }
+
+        window.onload = generateRouterFields;
+    </script>
+</body>
+</html>

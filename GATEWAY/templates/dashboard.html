@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetFlow Gateway Dashboard</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <h2>NetFlow</h2>
+
+            <p>Gateway Server</p>
+
+        </div>
+
+       <ul class="menu">
+
+    <li class="active">
+        <a href="/dashboard">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+
+    <li>
+        <a href="#overview">
+            <i class="fa-solid fa-chart-column"></i>
+            <span>Overview</span>
+        </a>
+    </li>
+
+    <li>
+        <a href="#history">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Recent Requests</span>
+        </a>
+    </li>
+
+    <li>
+        <a href="#health">
+            <i class="fa-solid fa-server"></i>
+            <span>System Health</span>
+        </a>
+    </li>
+
+    <li>
+        <a href="/">
+            <i class="fa-solid fa-house"></i>
+            <span>Gateway Home</span>
+        </a>
+    </li>
+
+</ul>
+    </aside>
+
+    <!-- Main Content -->
+
+    <main class="main-content">
+
+        <!-- Header -->
+
+        <div class="topbar">
+
+            <div>
+
+                <h1>Gateway Dashboard</h1>
+
+                <p>Real-time Network Monitoring</p>
+
+            </div>
+
+        </div>
+
+        <!-- Status Cards -->
+
+        <section id="overview">
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <span class="card-title">
+                        Gateway Status
+                    </span>
+
+                    <h2>
+                        {{ dashboard.gateway_status }}
+                    </h2>
+
+                </div>
+
+                <div class="card">
+
+                    <span class="card-title">
+                        Load Balancer
+                    </span>
+
+                    <h2>
+                        {{ dashboard.lb_status }}
+                    </h2>
+
+                </div>
+
+                <div class="card">
+
+                    <span class="card-title">
+                        Connected Clients
+                    </span>
+
+                    <h2>
+                        {{ dashboard.clients }}
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Statistics -->
+
+        <div class="stats">
+
+            <div class="stat-box">
+
+                <span>Total Requests</span>
+
+                <h2>{{ dashboard.total_requests }}</h2>
+
+            </div>
+
+            <div class="stat-box">
+
+                <span>Allowed Requests</span>
+
+                <h2>{{ dashboard.allowed }}</h2>
+
+            </div>
+
+            <div class="stat-box">
+
+                <span>Blocked Requests</span>
+
+                <h2>{{ dashboard.blocked }}</h2>
+
+            </div>
+
+        </div>
+
+        <!-- Two Panels -->
+
+        <div class="content-grid">
+
+            <!-- Current Request -->
+
+            <div class="panel">
+
+                <h3>Current Request</h3>
+
+                <div class="info">
+
+                    <label>Website</label>
+
+                    <div class="value">
+
+                        {{ dashboard.current_website }}
+
+                    </div>
+
+                </div>
+
+                <div class="info">
+
+                    <label>Category</label>
+
+                    <div class="value">
+
+                        {{ dashboard.current_category }}
+
+                    </div>
+
+                </div>
+
+                <div class="info">
+
+                    <label>Decision</label>
+
+                    <div class="value">
+
+                        {{ dashboard.current_decision }}
+
+                    </div>    
+
+                </div>
+
+            </div>
+
+            <!-- System Health -->
+
+            <div class="panel" id="health">
+
+                <h3>System Health</h3>
+
+                <div class="health-row">
+
+                    <span>Gateway</span>
+
+                    <span>{{ dashboard.gateway_status }}</span>
+
+                </div>
+
+                <div class="health-row">
+
+                    <span>Load Balancer</span>
+
+                    <span>{{ dashboard.lb_status }}</span>
+
+                </div>
+
+                <div class="health-row">
+
+                    <span>Connected Clients</span>
+
+                    <span>{{ dashboard.clients }}</span>
+
+                </div>
+
+                <div class="health-row">
+
+                    <span>Total Requests</span>
+
+                    <span>{{ dashboard.total_requests }}</span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Request History -->
+
+        <div class="table-container" id="history">
+
+            <div class="table-header">
+
+                <h3>Recent Requests</h3>
+
+            </div>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Website</th>
+
+                        <th>Category</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in history %}
+
+                    <tr>
+
+                        <td>{{ item.website }}</td>
+
+                        <td>{{ item.category }}</td>
+
+                        <td>
+
+                            {% if item.decision == "Allowed" %}
+
+                            <span class="allowed">
+
+                                Allowed
+
+                            </span>
+
+                            {% else %}
+
+                            <span class="blocked">
+
+                                Blocked
+
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETFLOW-AI - Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #07080a;
+            --card-glass: rgba(18, 22, 29, 0.85);
+            --border-silver: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #8e95a5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-main); display: flex; min-height: 100vh; }
+
+        .sidebar { width: 270px; background: #0c0e14; border-right: 1px solid var(--border-silver); padding: 28px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .brand { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 36px; display: flex; align-items: center; gap: 10px; }
+
+        .nav-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .nav-link { display: flex; align-items: center; gap: 14px; padding: 12px 16px; color: var(--text-muted); text-decoration: none; border-radius: 12px; font-weight: 600; transition: 0.3s; cursor: pointer; }
+        .nav-link.active, .nav-link:hover { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border-silver); }
+
+        .sidebar-bottom { border-top: 1px solid var(--border-silver); padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .profile-box { font-size: 13px; color: var(--text-muted); }
+
+        .main-panel { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+        .tab-content { display: none; flex-direction: column; gap: 24px; }
+        .tab-content.active { display: flex; }
+
+        .owner-banner { background: var(--card-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-silver); border-radius: 20px; padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-silver { background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%); color: #0c0d10; padding: 10px 20px; border-radius: 30px; font-weight: 800; text-decoration: none; font-size: 13px; border: none; cursor: pointer; transition: 0.2s; }
+
+        .card { background: var(--card-glass); border: 1px solid var(--border-silver); border-radius: 20px; padding: 24px; }
+        .card-header { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+
+        .router-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .router-node-card { background: rgba(13, 16, 23, 0.9); border: 1px solid var(--border-silver); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+        .node-top { display: flex; justify-content: space-between; align-items: center; }
+        .node-badge { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+
+        .node-title { font-size: 17px; font-weight: 800; color: #ffffff; }
+        .node-ip { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+
+        .node-info-box { background: rgba(5, 6, 8, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+        .info-row { display: flex; justify-content: space-between; color: var(--text-muted); }
+        .info-row strong { color: #ffffff; }
+
+        .node-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-silver); font-size: 12px; color: var(--text-muted); }
+        .input-limit { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--border-silver); color: #fff; padding: 8px 12px; border-radius: 8px; width: 80px; outline: none; font-weight: 700; }
+
+        .text-green { color: #10b981; }
+
+        .speed-val-box { display: flex; justify-content: space-around; align-items: center; background: rgba(0, 0, 0, 0.6); border-radius: 12px; padding: 12px; text-align: center; }
+        .speed-num { font-size: 18px; font-weight: 800; color: #10b981; }
+        .speed-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border-silver); font-size: 13px; }
+        th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+
+        .badge-allowed { color: #10b981; font-weight: 700; background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-blocked { color: #ef4444; font-weight: 700; background: rgba(239, 68, 68, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-connected { color: #3b82f6; font-weight: 700; background: rgba(59, 130, 246, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .empty-text { color: var(--text-muted); font-size: 14px; text-align: center; padding: 24px 0; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div>
+            <div class="brand"><i class="fa-solid fa-wifi"></i> NETFLOW-AI</div>
+            <ul class="nav-menu">
+                <li><a class="nav-link active" onclick="switchTab('tab-dashboard', this)"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+                <li><a class="nav-link" onclick="switchTab('tab-limits', this)"><i class="fa-solid fa-sliders"></i> Limit & Connections</a></li>
+                <li><a class="nav-link" onclick="switchTab('tab-tracker', this)"><i class="fa-solid fa-laptop-code"></i> Live Connections Tracker</a></li>
+                <li><a class="nav-link" onclick="switchTab('tab-speed', this)"><i class="fa-solid fa-gauge-high"></i> Network Speed Graph</a></li>
+                <li><a class="nav-link" onclick="switchTab('tab-traffic', this)"><i class="fa-solid fa-chart-simple"></i> Traffic Bar Graph</a></li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-bottom">
+            <a href="/setup_routers" class="nav-link" style="padding: 6px 0;"><i class="fa-solid fa-gear"></i> Edit Hardware Setup</a>
+            <div class="profile-box">Owner: <strong style="color: #fff;" id="displayOwnerName">{{ owner.name if owner.name else 'Bhargavi' }}</strong></div>
+            <a href="/" class="nav-link" style="padding: 6px 0; color: #ef4444;"><i class="fa-solid fa-power-off"></i> Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-panel">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="owner-banner">
+                <div>
+                    <h2>Welcome, <span id="bannerOwnerName">{{ owner.name if owner.name else 'Bhargavi' }}</span> 👋</h2>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">
+                        Location: <strong id="bannerCity">{{ owner.city if owner.city else 'Vijayawada' }}</strong> | Organization: <strong id="bannerOrg">{{ owner.org_type if owner.org_type else 'NRI Institution' }}</strong>
+                    </p>
+                </div>
+                <a href="/setup_routers" class="btn-silver"><i class="fa-solid fa-pen"></i> Edit Profile</a>
+            </div>
+
+            <!-- Active Routers & Access Points -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-wifi" style="margin-right: 8px;"></i> Active Routers & Access Points</span>
+                    <span style="font-size: 12px; color: #10b981; font-weight: 600;" id="activeNodeCountHeader">1 Node(s) Online</span>
+                </div>
+
+                <div class="router-grid" id="dashboardRouterGrid">
+                    <div class="router-node-card">
+                        <div class="node-top">
+                            <span class="node-badge">ACTIVE</span>
+                            <i class="fa-solid fa-network-wired" style="color: var(--text-muted);"></i>
+                        </div>
+                        <div>
+                            <div class="node-title">Laptop_A_Hotspot</div>
+                            <div class="node-ip">IP: 192.168.137.1</div>
+                        </div>
+                        <div class="node-info-box">
+                            <div class="info-row"><span>SSID:</span> <strong>Laptop_A_Hotspot</strong></div>
+                            <div class="info-row"><span>Password:</span> <strong>12345678</strong></div>
+                        </div>
+                        <div class="node-bottom">
+                            <span>Connected Clients:</span>
+                            <strong class="client-count-display text-green liveClientCountText">
+                                0 Connected Device(s)
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Speed Table -->
+            <div class="card">
+                <div class="card-header">Hotspot Live Speed & Bandwidth Allocation</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>NODE NAME</th>
+                            <th>IP ADDRESS</th>
+                            <th>MEASURED SPEED</th>
+                            <th>CAPACITY STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Laptop_A_Hotspot</strong></td>
+                            <td><code>192.168.137.1</code></td>
+                            <td><strong style="color: #10b981;">450 Mbps</strong></td>
+                            <td><span class="node-badge">OPTIMAL</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. LIMIT & CONNECTIONS VIEW -->
+        <div id="tab-limits" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-sliders" style="margin-right: 8px;"></i> Router Client Connection Limits</span>
+                </div>
+                
+                <div class="router-grid">
+                    <div class="router-node-card">
+                        <div class="node-top">
+                            <span class="node-badge">NODE #1</span>
+                            <i class="fa-solid fa-users-gear" style="color: var(--text-muted);"></i>
+                        </div>
+                        <div>
+                            <div class="node-title">Laptop_A_Hotspot</div>
+                            <div class="node-ip">IP: 192.168.137.1</div>
+                        </div>
+                        
+                        <div class="node-info-box">
+                            <div class="info-row">
+                                <span>Connected Clients:</span>
+                                <strong class="client-count-display text-green liveClientCountText">
+                                    0 Connected Device(s)
+                                </strong>
+                            </div>
+                            <div class="info-row" style="align-items: center; margin-top: 6px;">
+                                <span>Set User Limit:</span>
+                                <input type="number" id="limitInput_1" class="input-limit" value="10" min="1" max="100">
+                            </div>
+                        </div>
+
+                        <button class="btn-silver" style="width: 100%; border-radius: 10px; padding: 10px;" onclick="alert('Hotspot Max Capacity set to 10 Users!')">
+                            <i class="fa-solid fa-check"></i> Apply Limit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. LIVE CONNECTIONS TRACKER VIEW -->
+        <div id="tab-tracker" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span>Live Connected Devices & Traffic Monitor</span>
+                    <span style="font-size: 12px; color: #10b981;"><i class="fa-solid fa-circle-dot"></i> Realtime Stream Active</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TIME</th>
+                            <th>CLIENT IP ADDRESS</th>
+                            <th>REQUESTED WEBSITE</th>
+                            <th>CATEGORY</th>
+                            <th>DECISION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="liveTrackerBody">
+                        <tr>
+                            <td colspan="5" class="empty-text"><i class="fa-solid fa-wifi" style="margin-right: 6px;"></i> Waiting for live client connections... Connect Laptop B to Hotspot to see live traffic logs.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. NETWORK SPEED GRAPH VIEW -->
+        <div id="tab-speed" class="tab-content">
+            <div class="card">
+                <div class="card-header">Real-Time Speed & Bandwidth Usage (Mbps)</div>
+                <canvas id="bandwidthChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- 5. TRAFFIC BAR GRAPH VIEW -->
+        <div id="tab-traffic" class="tab-content">
+            <div class="card">
+                <div class="card-header">Peak Traffic Hours Distribution</div>
+                <canvas id="peakHoursChart" height="120"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            element.classList.add('active');
+        }
+
+        const ctxBandwidth = document.getElementById('bandwidthChart').getContext('2d');
+        const bandwidthChart = new Chart(ctxBandwidth, {
+            type: 'line',
+            data: {
+                labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+                datasets: [{
+                    label: 'Router Throughput Mbps', data: [120, 240, 180, 310, 420, 390, 450],
+                    borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.4
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8e95a5' } }, y: { ticks: { color: '#8e95a5' } } } }
+        });
+
+        const ctxPeak = document.getElementById('peakHoursChart').getContext('2d');
+        new Chart(ctxPeak, {
+            type: 'bar',
+            data: {
+                labels: ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM'],
+                datasets: [{ data: [12, 45, 80, 65, 90, 30], backgroundColor: '#3b82f6', borderRadius: 6 }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8e95a5' } }, y: { ticks: { color: '#8e95a5' } } } }
+        });
+
+        // 🔄 REAL-TIME AUTO-POLLING SCRIPT (ALWAYS FETCHES ALL LOGS & CLIENTS)
+        function updateDashboardLogs() {
+            fetch('/api/get_live_stats')
+                .then(res => res.json())
+                .then(data => {
+                    // Update Connected Device Count
+                    if (data.active_clients_count !== undefined) {
+                        const countVal = data.active_clients_count;
+                        document.querySelectorAll('.liveClientCountText').forEach(el => {
+                            el.innerText = `${countVal} Connected Device(s)`;
+                        });
+                    }
+
+                    // Update Tracker Table
+                    const tbody = document.getElementById('liveTrackerBody');
+                    if (tbody && data.logs && data.logs.length > 0) {
+                        let html = '';
+                        data.logs.forEach(log => {
+                            let badgeClass = 'badge-allowed';
+                            let dec = log.decision ? log.decision.toUpperCase() : 'ALLOWED';
+
+                            if (dec.includes('BLOCK')) {
+                                badgeClass = 'badge-blocked';
+                            } else if (dec.includes('CONNECT')) {
+                                badgeClass = 'badge-connected';
+                            }
+
+                            html += `
+                                <tr>
+                                    <td>${log.time || '--:--'}</td>
+                                    <td><code>${log.ip || '192.168.137.1'}</code></td>
+                                    <td><strong>${log.url || 'Network Traffic'}</strong></td>
+                                    <td>${log.category || 'Wi-Fi Traffic'}</td>
+                                    <td><span class="${badgeClass}">${dec}</span></td>
+                                </tr>
+                            `;
+                        });
+                        tbody.innerHTML = html;
+                    }
+                })
+                .catch(err => console.log('Polling stats...'));
+        }
+
+        // Run immediately and then every 1 second
+        updateDashboardLogs();
+        setInterval(updateDashboardLogs, 1000);
+    </script>
+</body>
+</html>

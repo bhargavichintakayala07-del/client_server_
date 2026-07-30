@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetFlow AI Gateway</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="home-page">
+
+<div class="gateway-box">
+
+    <h1 class="gateway-title">🌐 NetFlow AI Gateway</h1>
+
+    <p class="subtitle">
+        Intelligent Website Access Control using AI
+    </p>
+
+    <form action="/access" method="POST">
+
+        <label>Enter Website URL</label>
+
+        <input
+            type="text"
+            name="website"
+            placeholder="https://github.com"
+            required>
+
+        <button type="submit">
+            🚀 Analyze & Access
+        </button>
+
+    </form>
+
+    <div id="loading" class="loading-box">
+
+    <div class="loader"></div>
+
+    <h3>AI Gateway is analyzing...</h3>
+
+    <p>Please wait while we verify the website.</p>
+
+</div>
+{% if website %}
+    <div class="result-box">
+
+        <h2>Analysis Result</h2>
+
+        <p><strong>Website:</strong> {{ website }}</p>
+
+        <p><strong>Status:</strong> {{ decision }}</p>
+
+        <a href="/dashboard" class="dashboard-btn">
+            📊 Open Gateway Dashboard
+        </a>
+
+    </div>
+
+    {% endif %}
+
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
