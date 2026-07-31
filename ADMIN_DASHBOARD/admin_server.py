@@ -40,25 +40,29 @@ owner_data = {
     "org_type": "nri"
 }
 
+# 📡 REAL-TIME NETWORK CONFIGURATION (UPDATED IPs)
+LAPTOP_A_IP = "172.16.46.175"
+LAPTOP_B_IP = "172.16.40.167"
+
 routers_list = [
     {
         "id": 1,
         "name": "Laptop_A_Hotspot",
         "ssid": "Laptop_A_Hotspot",
-        "ip": "192.168.137.1",
+        "ip": LAPTOP_A_IP,
         "password": "••••••••",
         "active_clients": 0,
-        "max_limit": 10,
+        "max_limit": 50,
         "live_speed": "0 Mbps"
     },
     {
         "id": 2,
         "name": "Laptop_B_Hotspot",
         "ssid": "Laptop_B_Hotspot",
-        "ip": "192.168.15.89",
+        "ip": LAPTOP_B_IP,
         "password": "••••••••",
         "active_clients": 0,
-        "max_limit": 10,
+        "max_limit": 50,
         "live_speed": "0 Mbps"
     }
 ]
@@ -121,16 +125,16 @@ def save_setup():
                 "id": idx + 1,
                 "name": r.get("name", f"Router_{idx+1}"),
                 "ssid": r.get("name", f"Router_{idx+1}"),
-                "ip": r.get("ip", "192.168.137.1" if idx == 0 else "192.168.15.89"),
+                "ip": r.get("ip", LAPTOP_A_IP if idx == 0 else LAPTOP_B_IP),
                 "password": r.get("password", "12345678"),
                 "active_clients": 0,
-                "max_limit": 10,
+                "max_limit": 50,
                 "live_speed": "0 Mbps"
             })
         routers_list = new_list
     return jsonify({"success": True})
 
-# 📡 REALTIME GATEWAY RECEIVER API WITH STRICT SOURCE HOTSPOT MATCHING
+# 📡 REALTIME GATEWAY RECEIVER API WITH HOST IDENTIFICATION
 @app.route('/api/add_log', methods=['POST'])
 @app.route('/log', methods=['POST'])
 def add_log():
@@ -138,13 +142,13 @@ def add_log():
     data = request.get_json() or {}
     
     if data:
-        ip = data.get('ip', '127.0.0.1')
-        gateway_source = str(data.get('gateway_ip', ''))
+        client_ip = data.get('ip', '127.0.0.1')
+        gateway_source = str(data.get('gateway_ip', '')).strip()
         router_id = data.get('router_id', None)
-        router_name = str(data.get('router_name', '')).lower()
+        router_name_tag = str(data.get('router_name', '')).lower()
         
-        # Ignore Host Direct Loopbacks/Gateways
-        if ip in ["192.168.137.1", "192.168.15.1", "192.168.15.89", "127.0.0.1"]:
+        # Ignore Host Gateways & Loopback traffic
+        if client_ip in [LAPTOP_A_IP, LAPTOP_B_IP, "192.168.137.1", "127.0.0.1"]:
             return jsonify({"status": "ignored"}), 200
 
         time_val = data.get('time', datetime.now().strftime("%I:%M:%S %p"))
@@ -164,21 +168,23 @@ def add_log():
 
         current_timestamp = datetime.now().timestamp()
 
-        # 🎯 STRICT ROUTER MATCHING LOGIC (NO DEFAULT ACCIDENTAL ASSIGNMENT)
+        # 🎯 STRICT HOTSPOT ROUTER SOURCE MATCHING
         assigned_router = "Laptop_A_Hotspot"
         
-        # Laptop_B Exact Flags Matching (IP 192.168.15.89 or Subnet .15. or Router 2 Tag)
+        # Check if traffic originates from Laptop_B Host (172.16.40.167) or carries Laptop_B identifier
         if (router_id == 2 or 
-            "192.168.15." in ip or 
-            "192.168.15.89" in gateway_source or 
-            "laptop_b" in router_name or 
-            "b_hotspot" in router_name):
+            LAPTOP_B_IP in gateway_source or 
+            "172.16.40." in client_ip or 
+            "laptop_b" in router_name_tag or 
+            "b_hotspot" in router_name_tag):
             assigned_router = "Laptop_B_Hotspot"
 
-        # Register/Update Device
-        if ip not in device_tracker:
-            device_tracker[ip] = {
-                'ip': ip,
+        # Device Key Unique Assignment
+        device_key = f"{assigned_router}_{client_ip}"
+
+        if device_key not in device_tracker:
+            device_tracker[device_key] = {
+                'ip': client_ip,
                 'time': time_val,
                 'last_seen': current_timestamp,
                 'url': 'Active Connection',
@@ -188,48 +194,47 @@ def add_log():
                 'router_name': assigned_router
             }
         
-        device_tracker[ip]['time'] = time_val
-        device_tracker[ip]['last_seen'] = current_timestamp
-        device_tracker[ip]['router_name'] = assigned_router
+        device_tracker[device_key]['time'] = time_val
+        device_tracker[device_key]['last_seen'] = current_timestamp
+        device_tracker[device_key]['router_name'] = assigned_router
 
         if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper() or (url_val and url_val != "Hotspot Client Network Sync"):
             if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper():
-                device_tracker[ip]['url'] = url_val
-                device_tracker[ip]['category'] = ai_category
-                device_tracker[ip]['decision'] = ai_decision
-                device_tracker[ip]['blocked_count'] += 1
+                device_tracker[device_key]['url'] = url_val
+                device_tracker[device_key]['category'] = ai_category
+                device_tracker[device_key]['decision'] = ai_decision
+                device_tracker[device_key]['blocked_count'] += 1
             elif url_val != "Hotspot Client Network Sync":
-                device_tracker[ip]['url'] = url_val
+                device_tracker[device_key]['url'] = url_val
 
     return jsonify({"status": "success"}), 200
 
 
-# 🔄 REALTIME DASHBOARD STATS API (EXACT CLIENT COUNTING PER HOTSPOT)
+# 🔄 REALTIME DASHBOARD STATS API (DYNAMIC INCREASE & DECREASE TRACKING)
 @app.route('/api/get_logs', methods=['GET'])
 @app.route('/api/get_live_stats', methods=['GET'])
 def get_live_stats():
     global device_tracker, routers_list
     
-    # Inactive Heartbeat Cleanup (> 8 Seconds Inactive = Disconnected)
+    # Heartbeat Disconnect Tracking (> 8 Seconds Inactive = Auto Remove / Decrease Count)
     now = datetime.now().timestamp()
     active_devices = {}
-    for ip, dev in device_tracker.items():
+    for dev_key, dev in device_tracker.items():
         if now - dev.get('last_seen', now) < 8:
-            active_devices[ip] = dev
+            active_devices[dev_key] = dev
 
     device_tracker = active_devices
 
-    # Strict Connected Clients Sorting
+    # Dynamic Live Device Counter
     r1_clients = 0
     r2_clients = 0
 
     for dev in device_tracker.values():
         r_name = dev.get('router_name', '')
-        dev_ip = dev.get('ip', '')
 
-        if r_name == "Laptop_B_Hotspot" or dev_ip.startswith("192.168.15."):
+        if r_name == "Laptop_B_Hotspot":
             r2_clients += 1
-        elif r_name == "Laptop_A_Hotspot" or dev_ip.startswith("192.168.137."):
+        elif r_name == "Laptop_A_Hotspot":
             r1_clients += 1
 
     if len(routers_list) >= 1:
@@ -246,7 +251,8 @@ def get_live_stats():
         "routers": routers_list,
         "logs": list(device_tracker.values())
     })
-# 🧹 MANUAL CLEAR GHOST CONNECTIONS ROUTE
+
+# 🧹 RESET CONNECTIONS ROUTE
 @app.route('/api/clear_connections', methods=['POST', 'GET'])
 def clear_connections():
     global device_tracker
