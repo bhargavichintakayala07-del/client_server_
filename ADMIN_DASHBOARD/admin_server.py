@@ -1,7 +1,18 @@
 import os
+import sys
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import joblib
+
+# 🧠 IMPORT AI ENGINE MODULE FROM ROOT DIRECTORY
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+try:
+    from AI_ENGINE.ai_engine import inspect_traffic_ai
+    AI_ENGINE_ENABLED = True
+    print("🤖 NetFlow-AI Smart Engine Loaded Successfully!")
+except ImportError as e:
+    AI_ENGINE_ENABLED = False
+    print(f"⚠️ Warning: AI_ENGINE not found ({e}). Using default rules.")
 
 try:
     from tracker import get_active_client_count
@@ -119,7 +130,7 @@ def save_setup():
         routers_list = new_list
     return jsonify({"success": True})
 
-# 📡 LIVE GATEWAY RECEIVER API (Single Row Aggregation Per IP)
+# 📡 LIVE GATEWAY RECEIVER API WITH INTEGRATED AI TRAFFIC ENGINE
 @app.route('/api/add_log', methods=['POST'])
 @app.route('/log', methods=['POST'])
 def add_log():
@@ -138,6 +149,16 @@ def add_log():
         cat_val = data.get('category', 'Wi-Fi Traffic')
         dec_val = str(data.get('decision', 'CONNECTED')).upper()
 
+        # 🧠 RUN SMART AI INSPECTION ON REQUESTED URL / QUERY
+        ai_decision = dec_val
+        ai_category = cat_val
+
+        if url_val and AI_ENGINE_ENABLED:
+            ai_eval = inspect_traffic_ai(url_val)
+            if ai_eval["action"] == "BLOCK":
+                ai_decision = str(ai_eval["decision"]).upper()
+                ai_category = ai_eval["category"]
+
         current_timestamp = datetime.now().timestamp()
 
         # Connect / Register Device (Single Row per Client IP)
@@ -155,12 +176,12 @@ def add_log():
         device_tracker[ip]['time'] = time_val
         device_tracker[ip]['last_seen'] = current_timestamp
 
-        # Update row details ONLY if Blocked or Specific Site request
-        if "BLOCK" in dec_val or "RESTRICTED" in cat_val.upper() or (url_val and url_val != "Hotspot Client Network Sync"):
-            if "BLOCK" in dec_val or "RESTRICTED" in cat_val.upper():
+        # Update row details if Blocked by Rule/AI or Specific Site request
+        if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper() or (url_val and url_val != "Hotspot Client Network Sync"):
+            if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper():
                 device_tracker[ip]['url'] = url_val
-                device_tracker[ip]['category'] = cat_val
-                device_tracker[ip]['decision'] = 'BLOCKED'
+                device_tracker[ip]['category'] = ai_category
+                device_tracker[ip]['decision'] = ai_decision
                 device_tracker[ip]['blocked_count'] += 1
             elif url_val != "Hotspot Client Network Sync":
                 device_tracker[ip]['url'] = url_val
