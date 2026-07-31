@@ -351,7 +351,9 @@
             initTrafficBarChart();
 
             updateDashboardLogs();
-            setInterval(updateDashboardLogs, 1500);
+            
+            // 🔄 REAL-TIME AUTO-POLLING INTERVAL (Updates Dashboard without Reloading Page)
+            setInterval(updateDashboardLogs, 2000);
         });
 
         function initTelemetryChart() {
@@ -455,13 +457,13 @@
                         activeDevicesCount = data.active_clients_count || allLogs.length;
                     }
 
-                    // Strict Calculations based ONLY on active connected devices & logs
+                    // Dynamic Live Telemetry Values
                     let downloadMbps = 0;
                     let uploadMbps = 0;
                     let pingMs = 0;
 
                     if (activeDevicesCount > 0) {
-                        downloadMbps = Math.min(450, activeDevicesCount * 30 + filteredLogs.length * 4);
+                        downloadMbps = Math.min(450, activeDevicesCount * 35 + filteredLogs.length * 4);
                         uploadMbps = Math.round(downloadMbps * 0.2);
                         pingMs = Math.floor(Math.random() * 5) + 12;
                     }
@@ -492,7 +494,7 @@
                         bandwidthChartObj.update('none');
                     }
 
-                    // Update Traffic Analytics View using ONLY real live logs
+                    // Update Analytics View
                     let blockedLogs = allLogs.filter(l => l.decision && l.decision.toUpperCase().includes('BLOCK'));
                     let estimatedDataVolumeMB = (allLogs.length * 0.42).toFixed(2);
 
@@ -501,7 +503,6 @@
                     if (document.getElementById('liveBlockedAttemptsCount')) document.getElementById('liveBlockedAttemptsCount').innerText = `${blockedLogs.length} Attempts`;
                     if (document.getElementById('liveActiveHotspotNodes')) document.getElementById('liveActiveHotspotNodes').innerText = `${routers.length} Nodes`;
 
-                    // Update Bar Chart based on Router Node real log distribution
                     if (peakChartObj && routers.length > 0) {
                         let barLabels = [];
                         let barData = [];
@@ -510,7 +511,7 @@
                             const prefix = r.ip.split('.').slice(0, 3).join('.') + '.';
                             const rLogs = allLogs.filter(l => l.ip && l.ip.startsWith(prefix));
                             barLabels.push(r.name);
-                            barData.push(rLogs.length * 15); // Data points in KB/MB
+                            barData.push(rLogs.length * 15);
                         });
 
                         peakChartObj.data.labels = barLabels;
@@ -518,9 +519,7 @@
                         peakChartObj.update('none');
                     }
 
-                    // Update Dynamic Router List
                     updateDynamicRouterUsageList(routers, allLogs);
-
                     renderRouterGrid(routers);
 
                     let totalRequests = allLogs.length;
@@ -537,7 +536,7 @@
 
                     renderTrackerTables(routers, allLogs);
                 })
-                .catch(err => console.log('Syncing...'));
+                .catch(err => console.log('Syncing telemetry...'));
         }
 
         function populateDropdowns(routers) {
@@ -651,21 +650,23 @@
             routers.forEach(router => {
                 const ipParts = router.ip.split('.');
                 const prefix = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
-                const nodeDevices = allLogs.filter(dev => dev.ip && dev.ip.startsWith(prefix));
+                const nodeDevices = allLogs.filter(dev => dev.ip && (dev.ip.startsWith(prefix) || (dev.router_name && dev.router_name.toLowerCase().includes(router.name.toLowerCase().split('_')[1]))));
 
                 let rowsHTML = '';
                 if (nodeDevices.length === 0) {
                     rowsHTML = `<tr><td colspan="5" class="empty-text"><i class="fa-solid fa-wifi" style="margin-right: 6px;"></i> No active clients connected to ${router.name} (${router.ip})</td></tr>`;
                 } else {
                     nodeDevices.forEach(device => {
-                        let badgeClass = device.blocked_count > 0 ? 'badge-blocked' : 'badge-connected';
-                        let decText = device.blocked_count > 0 ? `BLOCKED (${device.blocked_count} Times)` : (device.decision || 'CONNECTED');
+                        let isBlocked = (device.decision && device.decision.toUpperCase().includes('BLOCK')) || (device.blocked_count > 0);
+                        let badgeClass = isBlocked ? 'badge-blocked' : 'badge-connected';
+                        let decText = isBlocked ? `AI BLOCKED (${device.category || 'Restricted'})` : (device.decision || 'CONNECTED');
+                        
                         rowsHTML += `
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                 <td style="padding: 14px; color: #10b981; font-weight: 600;">${device.time || '--:--'}</td>
                                 <td style="padding: 14px;"><code>${device.ip}</code></td>
-                                <td style="padding: 14px; font-weight: 700; color: ${device.blocked_count > 0 ? '#ef4444' : '#38bdf8'};">${device.url}</td>
-                                <td style="padding: 14px; color: #8e95a5;">${device.category}</td>
+                                <td style="padding: 14px; font-weight: 700; color: ${isBlocked ? '#ef4444' : '#38bdf8'};">${device.url || 'Active Connection'}</td>
+                                <td style="padding: 14px; color: #8e95a5;">${device.category || 'Wi-Fi Traffic'}</td>
                                 <td style="padding: 14px;"><span class="${badgeClass}">${decText}</span></td>
                             </tr>`;
                     });

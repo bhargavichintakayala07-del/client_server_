@@ -13,10 +13,9 @@ import tldextract
 app = Flask(__name__)
 
 # 📡 DYNAMIC LAPTOP_A ADMIN SERVER TARGET
-LAPTOP_A_ADMIN_IP = "172.16.46.175"
+LAPTOP_A_ADMIN_IP = "192.168.0.3"
 APP_SERVER_URL = f"http://{LAPTOP_A_ADMIN_IP}:5000/api/add_log"
 
-# Get Local Gateway Host IP dynamically
 def get_local_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -25,9 +24,14 @@ def get_local_ip():
         s.close()
         return ip
     except Exception:
-        return "172.16.40.167"
+        return "127.0.0.1"
 
 LOCAL_HOST_IP = get_local_ip()
+
+# 🎯 DYNAMIC HOTSPOT IDENTITY MATCHING
+IS_LAPTOP_B = ("192.168.0.4" in LOCAL_HOST_IP) or (LOCAL_HOST_IP == "172.16.40.167")
+CURRENT_ROUTER_ID = 2 if IS_LAPTOP_B else 1
+CURRENT_ROUTER_NAME = "Laptop_B_Hotspot" if IS_LAPTOP_B else "Laptop_A_Hotspot"
 
 # Path to Dataset CSV inside GATEWAY folder
 DATASET_PATH = os.path.join(os.path.dirname(__file__), 'dataset.csv')
@@ -62,7 +66,7 @@ def load_local_dataset_and_sync_hosts():
                                 blocked_domains_set.add(site)
                                 blocked_domains_set.add(f"www.{site}")
 
-            print(f"✅ GATEWAY DATASET LOADED: {len(domain_policy_map)} Domains ({len(blocked_domains_set)} Blocked Domains)!")
+            print(f"✅ GATEWAY DATASET LOADED FOR [{CURRENT_ROUTER_NAME}]: {len(domain_policy_map)} Domains ({len(blocked_domains_set)} Blocked Domains)!")
             apply_hosts_blocking()
 
         except Exception as e:
@@ -144,13 +148,12 @@ def scan_hotspot_clients():
             
             for client_ip in connected_clients_set:
                 try:
-                    # 🎯 LAPTOP_B EXPLICIT TAGGING ADDED HERE
                     res = requests.post(APP_SERVER_URL, json={
                         "time": datetime.datetime.now().strftime("%I:%M:%S %p"),
                         "ip": client_ip,
                         "gateway_ip": LOCAL_HOST_IP,
-                        "router_id": 2,
-                        "router_name": "Laptop_B_Hotspot",
+                        "router_id": CURRENT_ROUTER_ID,
+                        "router_name": CURRENT_ROUTER_NAME,
                         "url": "Hotspot Client Network Sync",
                         "category": "Wi-Fi Access",
                         "decision": "CONNECTED"
@@ -178,19 +181,19 @@ def network_interceptor(path):
     is_blocked, category_desc = evaluate_domain_policy(domain)
     current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
 
-    # Send activity log to Admin Dashboard with Gateway Host IP Source & Laptop_B Identifier
+    # Send activity log to Admin Dashboard with Gateway Host IP Source
     try:
         res = requests.post(APP_SERVER_URL, json={
             "time": current_time,
             "ip": client_ip,
             "gateway_ip": LOCAL_HOST_IP,
-            "router_id": 2,
-            "router_name": "Laptop_B_Hotspot",
+            "router_id": CURRENT_ROUTER_ID,
+            "router_name": CURRENT_ROUTER_NAME,
             "url": target_domain if "q=" in target_domain else domain,
             "category": category_desc,
             "decision": "BLOCKED" if is_blocked else "ALLOWED"
         }, timeout=1.5)
-        print(f"📡 LOG SENT TO DASHBOARD -> Domain: {domain} | Status: {res.status_code}")
+        print(f"📡 LOG SENT TO DASHBOARD [{CURRENT_ROUTER_NAME}] -> Domain: {domain} | Status: {res.status_code}")
     except Exception as err:
         print(f"⚠️ LOG ERROR: {err}")
 
