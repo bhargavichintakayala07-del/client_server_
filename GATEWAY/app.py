@@ -144,10 +144,13 @@ def scan_hotspot_clients():
             
             for client_ip in connected_clients_set:
                 try:
+                    # 🎯 LAPTOP_B EXPLICIT TAGGING ADDED HERE
                     res = requests.post(APP_SERVER_URL, json={
                         "time": datetime.datetime.now().strftime("%I:%M:%S %p"),
                         "ip": client_ip,
                         "gateway_ip": LOCAL_HOST_IP,
+                        "router_id": 2,
+                        "router_name": "Laptop_B_Hotspot",
                         "url": "Hotspot Client Network Sync",
                         "category": "Wi-Fi Access",
                         "decision": "CONNECTED"
@@ -175,12 +178,14 @@ def network_interceptor(path):
     is_blocked, category_desc = evaluate_domain_policy(domain)
     current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
 
-    # Send activity log to Admin Dashboard with Gateway Host IP Source
+    # Send activity log to Admin Dashboard with Gateway Host IP Source & Laptop_B Identifier
     try:
         res = requests.post(APP_SERVER_URL, json={
             "time": current_time,
             "ip": client_ip,
             "gateway_ip": LOCAL_HOST_IP,
+            "router_id": 2,
+            "router_name": "Laptop_B_Hotspot",
             "url": target_domain if "q=" in target_domain else domain,
             "category": category_desc,
             "decision": "BLOCKED" if is_blocked else "ALLOWED"

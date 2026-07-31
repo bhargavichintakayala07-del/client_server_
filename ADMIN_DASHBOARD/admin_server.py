@@ -134,7 +134,7 @@ def save_setup():
         routers_list = new_list
     return jsonify({"success": True})
 
-# 📡 REALTIME GATEWAY RECEIVER API WITH HOST IDENTIFICATION
+# 📡 REALTIME GATEWAY RECEIVER API WITH GUARANTEED SOURCE MATCHING
 @app.route('/api/add_log', methods=['POST'])
 @app.route('/log', methods=['POST'])
 def add_log():
@@ -142,12 +142,12 @@ def add_log():
     data = request.get_json() or {}
     
     if data:
-        client_ip = data.get('ip', '127.0.0.1')
+        client_ip = str(data.get('ip', '127.0.0.1')).strip()
         gateway_source = str(data.get('gateway_ip', '')).strip()
         router_id = data.get('router_id', None)
         router_name_tag = str(data.get('router_name', '')).lower()
         
-        # Ignore Host Gateways & Loopback traffic
+        # Ignore Host Direct Gateways / Self-IPs
         if client_ip in [LAPTOP_A_IP, LAPTOP_B_IP, "192.168.137.1", "127.0.0.1"]:
             return jsonify({"status": "ignored"}), 200
 
@@ -156,7 +156,7 @@ def add_log():
         cat_val = data.get('category', 'Wi-Fi Traffic')
         dec_val = str(data.get('decision', 'CONNECTED')).upper()
 
-        # 🧠 RUN AI INSPECTION
+        # 🧠 AI ENGINE INSPECTION
         ai_decision = dec_val
         ai_category = cat_val
 
@@ -168,18 +168,19 @@ def add_log():
 
         current_timestamp = datetime.now().timestamp()
 
-        # 🎯 STRICT HOTSPOT ROUTER SOURCE MATCHING
+        # 🎯 STRICT ROUTER MATCHING (Source Header & IP Subnet Fallbacks)
+        request_origin = request.remote_addr or ""
         assigned_router = "Laptop_A_Hotspot"
-        
-        # Check if traffic originates from Laptop_B Host (172.16.40.167) or carries Laptop_B identifier
+
         if (router_id == 2 or 
             LAPTOP_B_IP in gateway_source or 
+            LAPTOP_B_IP in request_origin or 
             "172.16.40." in client_ip or 
+            "172.16.40." in request_origin or 
             "laptop_b" in router_name_tag or 
             "b_hotspot" in router_name_tag):
             assigned_router = "Laptop_B_Hotspot"
 
-        # Device Key Unique Assignment
         device_key = f"{assigned_router}_{client_ip}"
 
         if device_key not in device_tracker:
@@ -210,28 +211,26 @@ def add_log():
     return jsonify({"status": "success"}), 200
 
 
-# 🔄 REALTIME DASHBOARD STATS API (DYNAMIC INCREASE & DECREASE TRACKING)
+# 🔄 REALTIME DASHBOARD STATS API (AUTO INSTANT DECREASE ON DISCONNECT)
 @app.route('/api/get_logs', methods=['GET'])
 @app.route('/api/get_live_stats', methods=['GET'])
 def get_live_stats():
     global device_tracker, routers_list
     
-    # Heartbeat Disconnect Tracking (> 8 Seconds Inactive = Auto Remove / Decrease Count)
+    # Strict 10-Second Timeout: Disconnected devices are dropped automatically!
     now = datetime.now().timestamp()
     active_devices = {}
     for dev_key, dev in device_tracker.items():
-        if now - dev.get('last_seen', now) < 8:
+        if now - dev.get('last_seen', now) < 10:
             active_devices[dev_key] = dev
 
     device_tracker = active_devices
 
-    # Dynamic Live Device Counter
     r1_clients = 0
     r2_clients = 0
 
     for dev in device_tracker.values():
         r_name = dev.get('router_name', '')
-
         if r_name == "Laptop_B_Hotspot":
             r2_clients += 1
         elif r_name == "Laptop_A_Hotspot":
