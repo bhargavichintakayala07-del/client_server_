@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -30,7 +30,8 @@ def health():
         "status": "UP",
         "server": SERVER_NAME,
         "port": PORT,
-        "handled_requests": request_count
+        "handled_requests": request_count,
+        "load": min(request_count * 5, 100)
     }), 200
 
 if __name__ == '__main__':
