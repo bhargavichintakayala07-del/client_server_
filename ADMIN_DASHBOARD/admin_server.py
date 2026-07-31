@@ -31,7 +31,7 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = "netflow_ai_secret_key"
 
-# Memory State Fallbacks with BOTH ROUTERS DEFAULT
+# Memory State Fallbacks
 owner_data = {
     "name": "Bhargavi", 
     "phone": "9032174260", 
@@ -49,7 +49,7 @@ routers_list = [
         "password": "••••••••",
         "active_clients": 0,
         "max_limit": 10,
-        "live_speed": "450 Mbps"
+        "live_speed": "0 Mbps"
     },
     {
         "id": 2,
@@ -59,7 +59,7 @@ routers_list = [
         "password": "••••••••",
         "active_clients": 0,
         "max_limit": 10,
-        "live_speed": "420 Mbps"
+        "live_speed": "0 Mbps"
     }
 ]
 
@@ -125,12 +125,12 @@ def save_setup():
                 "password": r.get("password", "12345678"),
                 "active_clients": 0,
                 "max_limit": 10,
-                "live_speed": "450 Mbps"
+                "live_speed": "0 Mbps"
             })
         routers_list = new_list
     return jsonify({"success": True})
 
-# 📡 LIVE GATEWAY RECEIVER API WITH INTEGRATED AI TRAFFIC ENGINE
+# 📡 REALTIME GATEWAY RECEIVER API WITH STRICT SOURCE HOTSPOT MATCHING
 @app.route('/api/add_log', methods=['POST'])
 @app.route('/log', methods=['POST'])
 def add_log():
@@ -139,8 +139,11 @@ def add_log():
     
     if data:
         ip = data.get('ip', '127.0.0.1')
+        gateway_source = str(data.get('gateway_ip', ''))
+        router_id = data.get('router_id', None)
+        router_name = str(data.get('router_name', '')).lower()
         
-        # Ignore Host Gateways
+        # Ignore Host Direct Loopbacks/Gateways
         if ip in ["192.168.137.1", "192.168.15.1", "192.168.15.89", "127.0.0.1"]:
             return jsonify({"status": "ignored"}), 200
 
@@ -149,7 +152,7 @@ def add_log():
         cat_val = data.get('category', 'Wi-Fi Traffic')
         dec_val = str(data.get('decision', 'CONNECTED')).upper()
 
-        # 🧠 RUN SMART AI INSPECTION ON REQUESTED URL / QUERY
+        # 🧠 RUN AI INSPECTION
         ai_decision = dec_val
         ai_category = cat_val
 
@@ -161,7 +164,18 @@ def add_log():
 
         current_timestamp = datetime.now().timestamp()
 
-        # Connect / Register Device (Single Row per Client IP)
+        # 🎯 STRICT ROUTER MATCHING LOGIC (NO DEFAULT ACCIDENTAL ASSIGNMENT)
+        assigned_router = "Laptop_A_Hotspot"
+        
+        # Laptop_B Exact Flags Matching (IP 192.168.15.89 or Subnet .15. or Router 2 Tag)
+        if (router_id == 2 or 
+            "192.168.15." in ip or 
+            "192.168.15.89" in gateway_source or 
+            "laptop_b" in router_name or 
+            "b_hotspot" in router_name):
+            assigned_router = "Laptop_B_Hotspot"
+
+        # Register/Update Device
         if ip not in device_tracker:
             device_tracker[ip] = {
                 'ip': ip,
@@ -170,13 +184,14 @@ def add_log():
                 'url': 'Active Connection',
                 'category': 'Wi-Fi Access',
                 'decision': 'CONNECTED',
-                'blocked_count': 0
+                'blocked_count': 0,
+                'router_name': assigned_router
             }
         
         device_tracker[ip]['time'] = time_val
         device_tracker[ip]['last_seen'] = current_timestamp
+        device_tracker[ip]['router_name'] = assigned_router
 
-        # Update row details if Blocked by Rule/AI or Specific Site request
         if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper() or (url_val and url_val != "Hotspot Client Network Sync"):
             if "BLOCK" in ai_decision or "RESTRICTED" in ai_category.upper():
                 device_tracker[ip]['url'] = url_val
@@ -188,26 +203,42 @@ def add_log():
 
     return jsonify({"status": "success"}), 200
 
-# 🔄 REALTIME DASHBOARD STATS API
+
+# 🔄 REALTIME DASHBOARD STATS API (EXACT CLIENT COUNTING PER HOTSPOT)
 @app.route('/api/get_logs', methods=['GET'])
 @app.route('/api/get_live_stats', methods=['GET'])
 def get_live_stats():
     global device_tracker, routers_list
     
-    # Auto-remove inactive devices (> 20 sec)
+    # Inactive Heartbeat Cleanup (> 8 Seconds Inactive = Disconnected)
     now = datetime.now().timestamp()
     active_devices = {}
     for ip, dev in device_tracker.items():
-        if now - dev.get('last_seen', now) < 20:
+        if now - dev.get('last_seen', now) < 8:
             active_devices[ip] = dev
 
     device_tracker = active_devices
 
-    # Count clients per subnet for both Routers
+    # Strict Connected Clients Sorting
+    r1_clients = 0
+    r2_clients = 0
+
+    for dev in device_tracker.values():
+        r_name = dev.get('router_name', '')
+        dev_ip = dev.get('ip', '')
+
+        if r_name == "Laptop_B_Hotspot" or dev_ip.startswith("192.168.15."):
+            r2_clients += 1
+        elif r_name == "Laptop_A_Hotspot" or dev_ip.startswith("192.168.137."):
+            r1_clients += 1
+
     if len(routers_list) >= 1:
-        routers_list[0]['active_clients'] = len([d for d in device_tracker.keys() if d.startswith("192.168.137.")])
+        routers_list[0]['active_clients'] = r1_clients
+        routers_list[0]['live_speed'] = f"{r1_clients * 350} Mbps" if r1_clients > 0 else "0 Mbps"
+
     if len(routers_list) >= 2:
-        routers_list[1]['active_clients'] = len([d for d in device_tracker.keys() if d.startswith("192.168.15.")])
+        routers_list[1]['active_clients'] = r2_clients
+        routers_list[1]['live_speed'] = f"{r2_clients * 350} Mbps" if r2_clients > 0 else "0 Mbps"
 
     return jsonify({
         "active_clients": len(device_tracker),
@@ -215,6 +246,12 @@ def get_live_stats():
         "routers": routers_list,
         "logs": list(device_tracker.values())
     })
+# 🧹 MANUAL CLEAR GHOST CONNECTIONS ROUTE
+@app.route('/api/clear_connections', methods=['POST', 'GET'])
+def clear_connections():
+    global device_tracker
+    device_tracker = {}
+    return jsonify({"status": "cleared", "message": "All active connections reset to 0"})
 
 if __name__ == '__main__':
     print("🚀 NETFLOW-AI ADMIN SERVER RUNNING ON http://127.0.0.1:5000")
