@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETFLOW-AI - Load Balancer Engine</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #050608;
+            --card-grey: rgba(18, 20, 26, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --accent-cyan: #38bdf8;
+            --accent-emerald: #10b981;
+            --accent-red: #ef4444;
+            --accent-purple: #c084fc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            min-height: 100vh; 
+            padding: 30px; 
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 🌌 BACKGROUND GLOW PARTICLES CANVAS */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container { 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 22px; 
+            position: relative; 
+            z-index: 10;
+        }
+
+        /* 💎 GLASSMORPHIC CARD & 3D DEPTH EFFECT */
+        .glass-card {
+            background: var(--card-grey);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px) scale(1.008);
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* HEADER */
+        .header-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+        }
+
+        .header-title { 
+            font-size: 22px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-badge { 
+            background: rgba(255, 255, 255, 0.05); 
+            color: var(--accent-cyan); 
+            border: 1px solid rgba(56, 189, 248, 0.2); 
+            padding: 6px 16px; 
+            border-radius: 30px; 
+            font-size: 12px; 
+            font-weight: 700; 
+            font-family: monospace; 
+        }
+
+        /* STATUS BANNER */
+        .alert-banner {
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+
+        .alert-normal {
+            background: rgba(16, 185, 129, 0.08);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.1); }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.3); }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.1); }
+        }
+
+        /* METRICS TOP ROW WIDGETS */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .metric-value { font-size: 22px; font-weight: 800; color: #fff; }
+
+        /* SERVERS GRID */
+        .server-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); 
+            gap: 20px; 
+        }
+
+        .server-card { display: flex; flex-direction: column; gap: 16px; }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; }
+        .node-name { font-size: 16px; font-weight: 800; color: var(--text-main); }
+
+        .status-pill { 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px;
+        }
+        .status-online { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-offline { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .stats-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+        .stats-val { font-size: 18px; font-weight: 800; color: #fff; margin-top: 4px; }
+
+        /* PROGRESS METER */
+        .progress-bg { background: rgba(255, 255, 255, 0.05); height: 8px; border-radius: 10px; overflow: hidden; margin-top: 8px; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+
+        /* LOGS TABLE */
+        .logs-card { padding: 24px; }
+        .logs-header { font-size: 15px; font-weight: 700; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+        th { color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+
+        .badge-target { padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; }
+        .badge-s1 { color: var(--accent-cyan); background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); }
+        .badge-s2 { color: var(--accent-purple); background: rgba(192, 132, 252, 0.12); border: 1px solid rgba(192, 132, 252, 0.25); }
+        .badge-200 { color: var(--accent-emerald); background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 800; padding: 3px 8px; border-radius: 6px; font-size: 11px; }
+
+        .empty-text { text-align: center; color: var(--text-muted); padding: 28px 0; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND MOVING PARTICLES CANVAS -->
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="container">
+
+        <!-- 1. HEADER BAR -->
+        <div class="glass-card header-box">
+            <div class="header-title">LOAD BALANCER ENGINE</div>
+            <div class="header-badge">HOST PORT: 8000</div>
+        </div>
+
+        <!-- 2. HIGH-TECH METRICS SUMMARY ROW -->
+        <div class="metrics-row">
+            <div class="glass-card metric-card">
+                <span class="metric-label">Routing Algorithm</span>
+                <span class="metric-value" style="color: var(--accent-cyan);">Round-Robin</span>
+            </div>
+            <div class="glass-card metric-card">
+                <span class="metric-label">Total Dispatched Traffic</span>
+                <span class="metric-value" id="totalRequestsCount">0 Requests</span>
+            </div>
+            <div class="glass-card metric-card">
+                <span class="metric-label">Active Worker Nodes</span>
+                <span class="metric-value" id="activeWorkerNodes" style="color: var(--accent-emerald);">2 / 2 Online</span>
+            </div>
+        </div>
+
+        <!-- 3. LIVE SYSTEM ALERT BANNER -->
+        <div id="failoverAlert" class="alert-banner alert-normal">
+            <span id="alertText">SYSTEM HEALTHY: Round-Robin Active (50-50 Traffic Split)</span>
+            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">AUTO GUARD ENABLED</span>
+        </div>
+
+        <!-- 4. SERVERS CLUSTER GRID -->
+        <div class="server-grid">
+
+            <!-- SERVER 1 CARD -->
+            <div class="glass-card server-card">
+                <div class="card-top">
+                    <span class="node-name" style="color: var(--accent-cyan);">SERVER_1 (Port 5002)</span>
+                    <span id="s1Badge" class="status-pill status-online">ONLINE</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">Target IP: 127.0.0.1:5002</div>
+
+                <div style="margin-top: 8px;">
+                    <div class="stats-row">
+                        <span>Handled Requests</span>
+                        <span>Load Distribution</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-val" id="s1Reqs">0</span>
+                        <span class="stats-val" id="s1Share" style="color: var(--accent-cyan);">0%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div id="s1Progress" class="progress-fill" style="width: 0%; background: var(--accent-cyan);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SERVER 2 CARD -->
+            <div class="glass-card server-card">
+                <div class="card-top">
+                    <span class="node-name" style="color: var(--accent-purple);">SERVER_2 (Port 5003)</span>
+                    <span id="s2Badge" class="status-pill status-online">ONLINE</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">Target IP: 127.0.0.1:5003</div>
+
+                <div style="margin-top: 8px;">
+                    <div class="stats-row">
+                        <span>Handled Requests</span>
+                        <span>Load Distribution</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-val" id="s2Reqs">0</span>
+                        <span class="stats-val" id="s2Share" style="color: var(--accent-purple);">0%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div id="s2Progress" class="progress-fill" style="width: 0%; background: var(--accent-purple);"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 5. REALTIME ROUTING LOG TABLE -->
+        <div class="glass-card logs-card">
+            <div class="logs-header">
+                <span>Real-Time Traffic Dispatch Log</span>
+                <span style="font-size: 12px; color: var(--accent-emerald);"><i class="fa-solid fa-bolt" style="margin-right: 4px;"></i> Live Stream Active</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>TIME</th>
+                        <th>CLIENT IP ADDRESS</th>
+                        <th>ROUTED BACKEND TARGET</th>
+                        <th>HTTP RESPONSE</th>
+                    </tr>
+                </thead>
+                <tbody id="lbLogsBody">
+                    <tr><td colspan="4" class="empty-text">Listening for incoming client requests...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- 🌌 PARTICLES ANIMATION SCRIPT -->
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(56, 189, 248, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 45; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // 📡 REALTIME DATA FETCHING & SYNC
+        function fetchLBStats() {
+            fetch('/api/lb_stats')
+                .then(res => res.json())
+                .then(data => {
+                    // S1 Status
+                    const s1Badge = document.getElementById('s1Badge');
+                    if(data.server1_up) {
+                        s1Badge.className = "status-pill status-online";
+                        s1Badge.innerText = "ONLINE";
+                    } else {
+                        s1Badge.className = "status-pill status-offline";
+                        s1Badge.innerText = "CRASHED / DOWN";
+                    }
+
+                    // S2 Status
+                    const s2Badge = document.getElementById('s2Badge');
+                    if(data.server2_up) {
+                        s2Badge.className = "status-pill status-online";
+                        s2Badge.innerText = "ONLINE";
+                    } else {
+                        s2Badge.className = "status-pill status-offline";
+                        s2Badge.innerText = "CRASHED / DOWN";
+                    }
+
+                    // Request Metrics & Load Calculation
+                    const totalReqs = data.server1_count + data.server2_count;
+                    document.getElementById('totalRequestsCount').innerText = `${totalReqs} Requests`;
+
+                    let activeCount = 0;
+                    if(data.server1_up) activeCount++;
+                    if(data.server2_up) activeCount++;
+                    document.getElementById('activeWorkerNodes').innerText = `${activeCount} / 2 Online`;
+
+                    const calcTotal = totalReqs || 1;
+                    const s1Pct = Math.round((data.server1_count / calcTotal) * 100);
+                    const s2Pct = Math.round((data.server2_count / calcTotal) * 100);
+
+                    document.getElementById('s1Reqs').innerText = data.server1_count;
+                    document.getElementById('s2Reqs').innerText = data.server2_count;
+
+                    document.getElementById('s1Share').innerText = `${s1Pct}%`;
+                    document.getElementById('s2Share').innerText = `${s2Pct}%`;
+
+                    document.getElementById('s1Progress').style.width = `${s1Pct}%`;
+                    document.getElementById('s2Progress').style.width = `${s2Pct}%`;
+
+                    // Failover Banner Alert
+                    const alertBox = document.getElementById('failoverAlert');
+                    const alertText = document.getElementById('alertText');
+
+                    if(!data.server1_up && !data.server2_up) {
+                        alertBox.className = "alert-banner alert-warning";
+                        alertText.innerText = "CRITICAL: ALL BACKEND SERVERS ARE UNREACHABLE!";
+                    } else if(!data.server1_up && data.server2_up) {
+                        alertBox.className = "alert-banner alert-warning";
+                        alertText.innerText = "⚠️ AUTO-FAILOVER ACTIVATED: SERVER_1 (5002) Down! Rerouting 100% Traffic ➔ SERVER_2 (5003)";
+                    } else if(data.server1_up && !data.server2_up) {
+                        alertBox.className = "alert-banner alert-warning";
+                        alertText.innerText = "⚠️ AUTO-FAILOVER ACTIVATED: SERVER_2 (5003) Down! Rerouting 100% Traffic ➔ SERVER_1 (5002)";
+                    } else {
+                        alertBox.className = "alert-banner alert-normal";
+                        alertText.innerText = "SYSTEM HEALTHY: Round-Robin Active (50-50 Traffic Split)";
+                    }
+
+                    // Live Log Table
+                    if(data.logs && data.logs.length > 0) {
+                        let html = '';
+                        data.logs.slice(-8).reverse().forEach(log => {
+                            let badge = log.target.includes('5002') ? 'badge-s1' : 'badge-s2';
+                            html += `<tr>
+                                <td style="color: var(--accent-emerald); font-weight: 600;">${log.time}</td>
+                                <td><code>${log.client_ip}</code></td>
+                                <td><span class="badge-target ${badge}">${log.target}</span></td>
+                                <td><span class="badge-200">200 OK</span></td>
+                            </tr>`;
+                        });
+                        document.getElementById('lbLogsBody').innerHTML = html;
+                    }
+                })
+                .catch(err => console.log('Syncing LB...'));
+        }
+
+        setInterval(fetchLBStats, 1000);
+        fetchLBStats();
+    </script>
+</body>
+</html>

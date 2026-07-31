@@ -3,7 +3,6 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import joblib
 
-# Try importing active client scanner from tracker.py
 try:
     from tracker import get_active_client_count
     TRACKER_ENABLED = True
@@ -12,7 +11,6 @@ except ImportError:
     def get_active_client_count():
         return 0
 
-# Database functions import (If database.py exists)
 try:
     from database import save_log, get_logs, get_statistics
     DB_ENABLED = True
@@ -22,46 +20,39 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = "netflow_ai_secret_key"
 
-# ============================
-# 🤖 LOAD AI MODEL & VECTORIZER
-# ============================
-model = None
-vectorizer = None
-
-model_path = os.path.join("model", "model.pkl")
-vectorizer_path = os.path.join("model", "vectorizer.pkl")
-
-if os.path.exists(model_path) and os.path.exists(vectorizer_path):
-    try:
-        model = joblib.load(model_path)
-        vectorizer = joblib.load(vectorizer_path)
-        print("✅ AI Model & Vectorizer Loaded Successfully!")
-    except Exception as e:
-        print(f"⚠️ Error loading AI Model: {e}")
-else:
-    print("⚠️ AI Model Files Not Found in 'model/' directory")
-
-# Memory State Fallbacks
+# Memory State Fallbacks with BOTH ROUTERS DEFAULT
 owner_data = {
     "name": "Bhargavi", 
-    "phone": "9999999999", 
+    "phone": "9032174260", 
     "age": "19", 
-    "city": "Vijayawada", 
-    "org_type": "NRI institution"
+    "city": "vijayawada", 
+    "org_type": "nri"
 }
 
-routers_list = [{
-    "id": 1,
-    "name": "LAPTOP-242LMJ5R 8267",
-    "ssid": "LAPTOP-242LMJ5R 8267",
-    "ip": "192.168.137.1",
-    "password": "srgwrrg",
-    "active_clients": 0,
-    "max_limit": 10,
-    "live_speed": "485.2 Mbps"
-}]
+routers_list = [
+    {
+        "id": 1,
+        "name": "Laptop_A_Hotspot",
+        "ssid": "Laptop_A_Hotspot",
+        "ip": "192.168.137.1",
+        "password": "••••••••",
+        "active_clients": 0,
+        "max_limit": 10,
+        "live_speed": "450 Mbps"
+    },
+    {
+        "id": 2,
+        "name": "Laptop_B_Hotspot",
+        "ssid": "Laptop_B_Hotspot",
+        "ip": "192.168.15.89",
+        "password": "••••••••",
+        "active_clients": 0,
+        "max_limit": 10,
+        "live_speed": "420 Mbps"
+    }
+]
 
-logs = []
+device_tracker = {}
 
 # ============================
 # 🌐 PAGE ROUTES
@@ -79,18 +70,11 @@ def owner_setup():
 
 @app.route('/dashboard')
 def dashboard():
-    db_logs = logs
-    if DB_ENABLED:
-        try:
-            db_logs = get_logs()
-        except Exception:
-            pass
-
     return render_template('dashboard.html', 
                            owner=owner_data, 
                            routers_list=routers_list, 
-                           logs=db_logs, 
-                           active_clients_count=routers_list[0]['active_clients'])
+                           logs=list(device_tracker.values()), 
+                           active_clients_count=len(device_tracker))
 
 # ============================
 # 📡 GATEWAY & DASHBOARD APIs
@@ -120,79 +104,97 @@ def save_setup():
     owner_data["org_type"] = data.get("org_type", owner_data["org_type"])
     
     if "routers" in data and len(data["routers"]) > 0:
-        routers_list = []
+        new_list = []
         for idx, r in enumerate(data["routers"]):
-            routers_list.append({
+            new_list.append({
                 "id": idx + 1,
                 "name": r.get("name", f"Router_{idx+1}"),
                 "ssid": r.get("name", f"Router_{idx+1}"),
-                "ip": r.get("ip", "192.168.137.1"),
+                "ip": r.get("ip", "192.168.137.1" if idx == 0 else "192.168.15.89"),
                 "password": r.get("password", "12345678"),
                 "active_clients": 0,
                 "max_limit": 10,
                 "live_speed": "450 Mbps"
             })
+        routers_list = new_list
     return jsonify({"success": True})
 
-# 📡 LIVE GATEWAY RECEIVER API
+# 📡 LIVE GATEWAY RECEIVER API (Single Row Aggregation Per IP)
 @app.route('/api/add_log', methods=['POST'])
 @app.route('/log', methods=['POST'])
 def add_log():
-    global logs, routers_list
+    global device_tracker, routers_list
     data = request.get_json() or {}
     
     if data:
-        # Always fetch EXACT Live active count
-        live_count = get_active_client_count()
-        incoming_count = data.get('active_clients_count', 0)
+        ip = data.get('ip', '127.0.0.1')
         
-        # Priority to live PowerShell tracker scanner
-        actual_count = live_count if live_count > 0 else incoming_count
-        routers_list[0]['active_clients'] = actual_count
+        # Ignore Host Gateways
+        if ip in ["192.168.137.1", "192.168.15.1", "192.168.15.89", "127.0.0.1"]:
+            return jsonify({"status": "ignored"}), 200
 
         time_val = data.get('time', datetime.now().strftime("%I:%M:%S %p"))
-        ip_val = data.get('ip', '127.0.0.1')
         url_val = data.get('url', data.get('website', ''))
         cat_val = data.get('category', 'Wi-Fi Traffic')
-        dec_val = data.get('decision', 'CONNECTED')
-        server_val = data.get('server', 'Hotspot Gateway Node')
+        dec_val = str(data.get('decision', 'CONNECTED')).upper()
 
-        if DB_ENABLED:
-            try:
-                save_log(time_val, ip_val, url_val, cat_val, dec_val, server_val)
-            except Exception as e:
-                print(f"DB Error: {e}")
+        current_timestamp = datetime.now().timestamp()
 
-        log_entry = [len(logs) + 1, time_val, ip_val, url_val, cat_val, dec_val, server_val]
-        logs.insert(0, log_entry)
+        # Connect / Register Device (Single Row per Client IP)
+        if ip not in device_tracker:
+            device_tracker[ip] = {
+                'ip': ip,
+                'time': time_val,
+                'last_seen': current_timestamp,
+                'url': 'Active Connection',
+                'category': 'Wi-Fi Access',
+                'decision': 'CONNECTED',
+                'blocked_count': 0
+            }
+        
+        device_tracker[ip]['time'] = time_val
+        device_tracker[ip]['last_seen'] = current_timestamp
+
+        # Update row details ONLY if Blocked or Specific Site request
+        if "BLOCK" in dec_val or "RESTRICTED" in cat_val.upper() or (url_val and url_val != "Hotspot Client Network Sync"):
+            if "BLOCK" in dec_val or "RESTRICTED" in cat_val.upper():
+                device_tracker[ip]['url'] = url_val
+                device_tracker[ip]['category'] = cat_val
+                device_tracker[ip]['decision'] = 'BLOCKED'
+                device_tracker[ip]['blocked_count'] += 1
+            elif url_val != "Hotspot Client Network Sync":
+                device_tracker[ip]['url'] = url_val
 
     return jsonify({"status": "success"}), 200
-
 
 # 🔄 REALTIME DASHBOARD STATS API
 @app.route('/api/get_logs', methods=['GET'])
 @app.route('/api/get_live_stats', methods=['GET'])
 def get_live_stats():
-    # Direct Live Scanner sync (Increase/Decrease Both Handled Instantly)
-    routers_list[0]['active_clients'] = get_active_client_count()
+    global device_tracker, routers_list
+    
+    # Auto-remove inactive devices (> 20 sec)
+    now = datetime.now().timestamp()
+    active_devices = {}
+    for ip, dev in device_tracker.items():
+        if now - dev.get('last_seen', now) < 20:
+            active_devices[ip] = dev
 
-    formatted_logs = []
-    for l in logs[:20]:
-        formatted_logs.append({
-            "time": l[1],
-            "ip": l[2],
-            "url": l[3],
-            "category": l[4],
-            "decision": l[5]
-        })
+    device_tracker = active_devices
+
+    # Count clients per subnet for both Routers
+    if len(routers_list) >= 1:
+        routers_list[0]['active_clients'] = len([d for d in device_tracker.keys() if d.startswith("192.168.137.")])
+    if len(routers_list) >= 2:
+        routers_list[1]['active_clients'] = len([d for d in device_tracker.keys() if d.startswith("192.168.15.")])
 
     return jsonify({
-        "active_clients": routers_list[0]['active_clients'],
-        "active_clients_count": routers_list[0]['active_clients'],
+        "active_clients": len(device_tracker),
+        "active_clients_count": len(device_tracker),
         "routers": routers_list,
-        "logs": formatted_logs
+        "logs": list(device_tracker.values())
     })
 
 if __name__ == '__main__':
-    print("🚀 NETFLOW-AI ALL-IN-ONE ADMIN SERVER RUNNING ON http://127.0.0.1:5000")
+    print("🚀 NETFLOW-AI ADMIN SERVER RUNNING ON http://127.0.0.1:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)

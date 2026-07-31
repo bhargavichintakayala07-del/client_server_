@@ -54,13 +54,8 @@
         .info-row strong { color: #ffffff; }
 
         .node-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-silver); font-size: 12px; color: var(--text-muted); }
-        .input-limit { background: rgba(0, 0, 0, 0.8); border: 1px solid var(--border-silver); color: #fff; padding: 8px 12px; border-radius: 8px; width: 80px; outline: none; font-weight: 700; }
 
         .text-green { color: #10b981; }
-
-        .speed-val-box { display: flex; justify-content: space-around; align-items: center; background: rgba(0, 0, 0, 0.6); border-radius: 12px; padding: 12px; text-align: center; }
-        .speed-num { font-size: 18px; font-weight: 800; color: #10b981; }
-        .speed-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--border-silver); font-size: 13px; }
@@ -88,7 +83,7 @@
         
         <div class="sidebar-bottom">
             <a href="/setup_routers" class="nav-link" style="padding: 6px 0;"><i class="fa-solid fa-gear"></i> Edit Hardware Setup</a>
-            <div class="profile-box">Owner: <strong style="color: #fff;" id="displayOwnerName">{{ owner.name if owner.name else 'Bhargavi' }}</strong></div>
+            <div class="profile-box">Owner: <strong style="color: #fff;">Bhargavi</strong></div>
             <a href="/" class="nav-link" style="padding: 6px 0; color: #ef4444;"><i class="fa-solid fa-power-off"></i> Logout</a>
         </div>
     </aside>
@@ -99,9 +94,9 @@
         <div id="tab-dashboard" class="tab-content active">
             <div class="owner-banner">
                 <div>
-                    <h2>Welcome, <span id="bannerOwnerName">{{ owner.name if owner.name else 'Bhargavi' }}</span> 👋</h2>
+                    <h2>Welcome, Bhargavi 👋</h2>
                     <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">
-                        Location: <strong id="bannerCity">{{ owner.city if owner.city else 'Vijayawada' }}</strong> | Organization: <strong id="bannerOrg">{{ owner.org_type if owner.org_type else 'NRI Institution' }}</strong>
+                        Location: <strong>vijayawada</strong> | Organization: <strong>nri</strong>
                     </p>
                 </div>
                 <a href="/setup_routers" class="btn-silver"><i class="fa-solid fa-pen"></i> Edit Profile</a>
@@ -111,29 +106,40 @@
             <div class="card">
                 <div class="card-header">
                     <span><i class="fa-solid fa-wifi" style="margin-right: 8px;"></i> Active Routers & Access Points</span>
-                    <span style="font-size: 12px; color: #10b981; font-weight: 600;" id="activeNodeCountHeader">1 Node(s) Online</span>
+                    <span style="font-size: 12px; color: #10b981; font-weight: 600;" id="activeNodeCountHeader">2 Node(s) Online</span>
                 </div>
 
                 <div class="router-grid" id="dashboardRouterGrid">
-                    <div class="router-node-card">
-                        <div class="node-top">
-                            <span class="node-badge">ACTIVE</span>
-                            <i class="fa-solid fa-network-wired" style="color: var(--text-muted);"></i>
+                    <!-- Dynamic Rendering -->
+                </div>
+            </div>
+
+            <!-- 🖥️ MULTI-SERVER BACKEND CLUSTER HEALTH CARD -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-server" style="color: #38bdf8; margin-right: 8px;"></i> Multi-Server Backend Cluster Health</span>
+                    <span style="font-size: 12px; color: #10b981; font-weight: 600;"><i class="fa-solid fa-circle-dot"></i> Load Balancer Active</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+                    <!-- SERVER 1 CARD -->
+                    <div style="background: rgba(13, 16, 23, 0.9); border: 1px solid var(--border-silver); border-radius: 14px; padding: 18px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong style="color: #fff; font-size: 15px;">SERVER_1 (Port 5002)</strong>
+                            <span id="s1StatusBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800;">ONLINE</span>
                         </div>
-                        <div>
-                            <div class="node-title">Laptop_A_Hotspot</div>
-                            <div class="node-ip">IP: 192.168.137.1</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">Total Handled Requests: <strong id="server1Count" style="color: #38bdf8;">0</strong></div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Current Load: <strong id="server1Load" style="color: #10b981;">50%</strong></div>
+                    </div>
+
+                    <!-- SERVER 2 CARD -->
+                    <div style="background: rgba(13, 16, 23, 0.9); border: 1px solid var(--border-silver); border-radius: 14px; padding: 18px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong style="color: #fff; font-size: 15px;">SERVER_2 (Port 5003)</strong>
+                            <span id="s2StatusBadge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800;">ONLINE</span>
                         </div>
-                        <div class="node-info-box">
-                            <div class="info-row"><span>SSID:</span> <strong>Laptop_A_Hotspot</strong></div>
-                            <div class="info-row"><span>Password:</span> <strong>12345678</strong></div>
-                        </div>
-                        <div class="node-bottom">
-                            <span>Connected Clients:</span>
-                            <strong class="client-count-display text-green liveClientCountText">
-                                0 Connected Device(s)
-                            </strong>
-                        </div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">Total Handled Requests: <strong id="server2Count" style="color: #38bdf8;">0</strong></div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Current Load: <strong id="server2Load" style="color: #10b981;">50%</strong></div>
                     </div>
                 </div>
             </div>
@@ -150,13 +156,8 @@
                             <th>CAPACITY STATUS</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Laptop_A_Hotspot</strong></td>
-                            <td><code>192.168.137.1</code></td>
-                            <td><strong style="color: #10b981;">450 Mbps</strong></td>
-                            <td><span class="node-badge">OPTIMAL</span></td>
-                        </tr>
+                    <tbody id="speedTableBody">
+                        <!-- Dynamic Rendering -->
                     </tbody>
                 </table>
             </div>
@@ -168,62 +169,16 @@
                 <div class="card-header">
                     <span><i class="fa-solid fa-sliders" style="margin-right: 8px;"></i> Router Client Connection Limits</span>
                 </div>
-                
-                <div class="router-grid">
-                    <div class="router-node-card">
-                        <div class="node-top">
-                            <span class="node-badge">NODE #1</span>
-                            <i class="fa-solid fa-users-gear" style="color: var(--text-muted);"></i>
-                        </div>
-                        <div>
-                            <div class="node-title">Laptop_A_Hotspot</div>
-                            <div class="node-ip">IP: 192.168.137.1</div>
-                        </div>
-                        
-                        <div class="node-info-box">
-                            <div class="info-row">
-                                <span>Connected Clients:</span>
-                                <strong class="client-count-display text-green liveClientCountText">
-                                    0 Connected Device(s)
-                                </strong>
-                            </div>
-                            <div class="info-row" style="align-items: center; margin-top: 6px;">
-                                <span>Set User Limit:</span>
-                                <input type="number" id="limitInput_1" class="input-limit" value="10" min="1" max="100">
-                            </div>
-                        </div>
-
-                        <button class="btn-silver" style="width: 100%; border-radius: 10px; padding: 10px;" onclick="alert('Hotspot Max Capacity set to 10 Users!')">
-                            <i class="fa-solid fa-check"></i> Apply Limit
-                        </button>
-                    </div>
+                <div class="router-grid" id="limitsRouterGrid">
+                    <!-- Dynamic Rendering -->
                 </div>
             </div>
         </div>
 
-        <!-- 3. LIVE CONNECTIONS TRACKER VIEW -->
+        <!-- 3. LIVE CONNECTIONS TRACKER VIEW (SEPARATE HOTSPOT TABLES) -->
         <div id="tab-tracker" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <span>Live Connected Devices & Traffic Monitor</span>
-                    <span style="font-size: 12px; color: #10b981;"><i class="fa-solid fa-circle-dot"></i> Realtime Stream Active</span>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>TIME</th>
-                            <th>CLIENT IP ADDRESS</th>
-                            <th>REQUESTED WEBSITE</th>
-                            <th>CATEGORY</th>
-                            <th>DECISION</th>
-                        </tr>
-                    </thead>
-                    <tbody id="liveTrackerBody">
-                        <tr>
-                            <td colspan="5" class="empty-text"><i class="fa-solid fa-wifi" style="margin-right: 6px;"></i> Waiting for live client connections... Connect Laptop B to Hotspot to see live traffic logs.</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="trackerContainer" style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Separate Dynamic Tables -->
             </div>
         </div>
 
@@ -255,7 +210,7 @@
         }
 
         const ctxBandwidth = document.getElementById('bandwidthChart').getContext('2d');
-        const bandwidthChart = new Chart(ctxBandwidth, {
+        new Chart(ctxBandwidth, {
             type: 'line',
             data: {
                 labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
@@ -277,50 +232,161 @@
             options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8e95a5' } }, y: { ticks: { color: '#8e95a5' } } } }
         });
 
-        // 🔄 REAL-TIME AUTO-POLLING SCRIPT (ALWAYS FETCHES ALL LOGS & CLIENTS)
         function updateDashboardLogs() {
             fetch('/api/get_live_stats')
                 .then(res => res.json())
                 .then(data => {
-                    // Update Connected Device Count
-                    if (data.active_clients_count !== undefined) {
-                        const countVal = data.active_clients_count;
-                        document.querySelectorAll('.liveClientCountText').forEach(el => {
-                            el.innerText = `${countVal} Connected Device(s)`;
-                        });
-                    }
+                    const routers = (data.routers && data.routers.length > 0) ? data.routers : [
+                        { id: 1, name: "Laptop_A_Hotspot", ip: "192.168.137.1", password: "••••••••", active_clients: 0, live_speed: "450 Mbps" },
+                        { id: 2, name: "Laptop_B_Hotspot", ip: "192.168.15.89", password: "••••••••", active_clients: 0, live_speed: "420 Mbps" }
+                    ];
 
-                    // Update Tracker Table
-                    const tbody = document.getElementById('liveTrackerBody');
-                    if (tbody && data.logs && data.logs.length > 0) {
-                        let html = '';
-                        data.logs.forEach(log => {
-                            let badgeClass = 'badge-allowed';
-                            let dec = log.decision ? log.decision.toUpperCase() : 'ALLOWED';
+                    document.getElementById('activeNodeCountHeader').innerText = `${routers.length} Node(s) Online`;
 
-                            if (dec.includes('BLOCK')) {
-                                badgeClass = 'badge-blocked';
-                            } else if (dec.includes('CONNECT')) {
-                                badgeClass = 'badge-connected';
-                            }
+                    let routerGridHTML = '';
+                    let speedTableHTML = '';
+                    let limitsGridHTML = '';
 
-                            html += `
+                    routers.forEach(router => {
+                        const clientCount = router.active_clients || 0;
+
+                        routerGridHTML += `
+                            <div class="router-node-card">
+                                <div class="node-top">
+                                    <span class="node-badge">ACTIVE</span>
+                                    <i class="fa-solid fa-network-wired" style="color: var(--text-muted);"></i>
+                                </div>
+                                <div>
+                                    <div class="node-title">${router.name}</div>
+                                    <div class="node-ip">IP: ${router.ip}</div>
+                                </div>
+                                <div class="node-info-box">
+                                    <div class="info-row"><span>SSID:</span> <strong>${router.ssid || router.name}</strong></div>
+                                    <div class="info-row"><span>Password:</span> <strong>${router.password || '••••••••'}</strong></div>
+                                </div>
+                                <div class="node-bottom">
+                                    <span>Connected Clients:</span>
+                                    <strong class="client-count-display text-green">
+                                        ${clientCount} Connected Device(s)
+                                    </strong>
+                                </div>
+                            </div>
+                        `;
+
+                        speedTableHTML += `
+                            <tr>
+                                <td><strong>${router.name}</strong></td>
+                                <td><code>${router.ip}</code></td>
+                                <td><strong style="color: #10b981;">${router.live_speed || '450 Mbps'}</strong></td>
+                                <td><span class="node-badge">OPTIMAL</span></td>
+                            </tr>
+                        `;
+
+                        limitsGridHTML += `
+                            <div class="router-node-card">
+                                <div class="node-top">
+                                    <span class="node-badge">NODE #${router.id}</span>
+                                    <i class="fa-solid fa-users-gear" style="color: var(--text-muted);"></i>
+                                </div>
+                                <div>
+                                    <div class="node-title">${router.name}</div>
+                                    <div class="node-ip">IP: ${router.ip}</div>
+                                </div>
+                                <div class="node-info-box">
+                                    <div class="info-row">
+                                        <span>Connected Clients:</span>
+                                        <strong class="text-green">${clientCount} Connected</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    document.getElementById('dashboardRouterGrid').innerHTML = routerGridHTML;
+                    document.getElementById('speedTableBody').innerHTML = speedTableHTML;
+                    document.getElementById('limitsRouterGrid').innerHTML = limitsGridHTML;
+
+                    // 🖥️ LOAD BALANCER DYNAMIC CALCULATION
+                    let totalRequests = data.logs ? data.logs.length : 0;
+                    let s1Count = Math.ceil(totalRequests / 2);
+                    let s2Count = Math.floor(totalRequests / 2);
+
+                    document.getElementById('server1Count').innerText = `${s1Count} Requests`;
+                    document.getElementById('server2Count').innerText = `${s2Count} Requests`;
+
+                    // Separate Tracker Tables
+                    const allLogs = data.logs || [];
+                    const trackerContainer = document.getElementById('trackerContainer');
+                    let trackerContainerHTML = '';
+
+                    routers.forEach(router => {
+                        const ipParts = router.ip.split('.');
+                        const subnetPrefix = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
+
+                        const nodeDevices = allLogs.filter(dev => dev.ip.startsWith(subnetPrefix));
+
+                        let rowsHTML = '';
+                        if (nodeDevices.length === 0) {
+                            rowsHTML = `
                                 <tr>
-                                    <td>${log.time || '--:--'}</td>
-                                    <td><code>${log.ip || '192.168.137.1'}</code></td>
-                                    <td><strong>${log.url || 'Network Traffic'}</strong></td>
-                                    <td>${log.category || 'Wi-Fi Traffic'}</td>
-                                    <td><span class="${badgeClass}">${dec}</span></td>
-                                </tr>
-                            `;
-                        });
-                        tbody.innerHTML = html;
-                    }
+                                    <td colspan="5" class="empty-text">
+                                        <i class="fa-solid fa-wifi" style="margin-right: 6px;"></i> 
+                                        No active clients connected to ${router.name} (${router.ip})
+                                    </td>
+                                </tr>`;
+                        } else {
+                            nodeDevices.forEach(device => {
+                                let badgeClass = 'badge-connected';
+                                let decText = device.decision || 'CONNECTED';
+
+                                if (device.blocked_count > 0) {
+                                    badgeClass = 'badge-blocked';
+                                    decText = `BLOCKED (${device.blocked_count} Times)`;
+                                }
+
+                                rowsHTML += `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 14px; color: #10b981; font-weight: 600;">${device.time || '--:--'}</td>
+                                        <td style="padding: 14px;"><code>${device.ip}</code></td>
+                                        <td style="padding: 14px; font-weight: 700; color: ${device.blocked_count > 0 ? '#ef4444' : '#38bdf8'};">
+                                            ${device.url}
+                                        </td>
+                                        <td style="padding: 14px; color: #8e95a5;">${device.category}</td>
+                                        <td style="padding: 14px;"><span class="${badgeClass}">${decText}</span></td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        trackerContainerHTML += `
+                            <div class="card">
+                                <div class="card-header">
+                                    <span><i class="fa-solid fa-laptop-code" style="margin-right: 8px; color: #3b82f6;"></i> ${router.name} Live Traffic (${router.ip})</span>
+                                    <span style="font-size: 12px; color: #10b981;"><i class="fa-solid fa-circle-dot"></i> ${nodeDevices.length} Connected Client(s)</span>
+                                </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>TIME</th>
+                                            <th>CLIENT IP ADDRESS</th>
+                                            <th>REQUESTED WEBSITE</th>
+                                            <th>CATEGORY</th>
+                                            <th>DECISION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHTML}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    });
+
+                    trackerContainer.innerHTML = trackerContainerHTML;
                 })
-                .catch(err => console.log('Polling stats...'));
+                .catch(err => console.log('Syncing...'));
         }
 
-        // Run immediately and then every 1 second
         updateDashboardLogs();
         setInterval(updateDashboardLogs, 1000);
     </script>
