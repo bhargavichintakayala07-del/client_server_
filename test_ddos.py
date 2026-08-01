@@ -7,14 +7,14 @@ target_url = "http://127.0.0.1:5000/api/add_log"
 # Hotspot 1 & Hotspot 2 Configurations
 HOTSPOT_A = {
     "ip": "192.168.137.88",
-    "gateway_ip": "192.168.0.3",
+    "gateway_ip": "172.16.46.175",
     "router_id": 1,
     "router_name": "Laptop_A_Hotspot"
 }
 
 HOTSPOT_B = {
     "ip": "192.168.137.99",
-    "gateway_ip": "192.168.0.4",
+    "gateway_ip": "172.16.40.167",
     "router_id": 2,
     "router_name": "Laptop_B_Hotspot"
 }

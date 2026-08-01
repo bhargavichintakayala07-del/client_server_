@@ -6,8 +6,9 @@ from datetime import datetime
 app = Flask(__name__)
 
 # 📡 REAL BACKEND SERVERS NETWORK IP CONFIGURATION
-LAPTOP_A_IP = "192.168.0.3"
-LAPTOP_B_IP = "192.168.0.4"
+LAPTOP_A_IP = "172.16.46.175"
+LAPTOP_B_IP = "172.16.40.167"
+
 
 SERVER_1 = f"http://{LAPTOP_A_IP}:5002"
 SERVER_2 = f"http://{LAPTOP_B_IP}:5003"

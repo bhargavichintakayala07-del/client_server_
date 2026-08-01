@@ -24,8 +24,8 @@ owner_data = {
     "org_type": "nri"
 }
 
-LAPTOP_A_IP = "192.168.0.3"
-LAPTOP_B_IP = "192.168.0.4"
+LAPTOP_A_IP = "172.16.46.175"
+LAPTOP_B_IP = "172.16.40.167"
 
 routers_list = [
     {"id": 1, "name": "Laptop_A_Hotspot", "ssid": "Laptop_A_Hotspot", "ip": LAPTOP_A_IP, "password": "••••••••", "active_clients": 0, "max_limit": 50, "live_speed": "0 Mbps"},

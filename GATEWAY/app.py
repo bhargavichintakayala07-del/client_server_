@@ -13,7 +13,7 @@ import tldextract
 app = Flask(__name__)
 
 # 📡 DYNAMIC LAPTOP_A ADMIN SERVER TARGET
-LAPTOP_A_ADMIN_IP = "192.168.0.3"
+LAPTOP_A_ADMIN_IP = "172.16.46.175"
 APP_SERVER_URL = f"http://{LAPTOP_A_ADMIN_IP}:5000/api/add_log"
 
 def get_local_ip():
@@ -29,7 +29,7 @@ def get_local_ip():
 LOCAL_HOST_IP = get_local_ip()
 
 # 🎯 DYNAMIC HOTSPOT IDENTITY MATCHING
-IS_LAPTOP_B = ("192.168.0.4" in LOCAL_HOST_IP) or (LOCAL_HOST_IP == "172.16.40.167")
+IS_LAPTOP_B = ("172.16.40.167" in LOCAL_HOST_IP) or (LOCAL_HOST_IP == "172.16.46.175")
 CURRENT_ROUTER_ID = 2 if IS_LAPTOP_B else 1
 CURRENT_ROUTER_NAME = "Laptop_B_Hotspot" if IS_LAPTOP_B else "Laptop_A_Hotspot"
 
