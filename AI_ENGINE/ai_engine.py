@@ -111,3 +111,30 @@ def inspect_traffic_ai(url_or_query, client_ip="127.0.0.1"):
         "category": "General Traffic",
         "risk_score": risk_score
     }
+# -------------------------------------------------------------
+# 🔮 AI TIME-SERIES TRAFFIC FORECASTING ENGINE
+# -------------------------------------------------------------
+def predict_future_traffic(history_rates):
+    """
+    Takes past traffic data points and predicts next 5 interval bandwidth trends.
+    Uses Moving Average + Trend Slope Forecasting algorithm.
+    """
+    if not history_rates or len(history_rates) < 2:
+        return [120, 140, 160, 150, 180] # Default fallback baseline forecast
+
+    # Calculate average growth rate (slope)
+    n = len(history_rates)
+    recent_avg = sum(history_rates[-3:]) / min(n, 3)
+    overall_avg = sum(history_rates) / n
+    trend_slope = (recent_avg - overall_avg) * 0.25
+
+    forecast_points = []
+    last_val = history_rates[-1]
+
+    for i in range(1, 6):
+        # Predict next points with trend variation
+        predicted = last_val + (trend_slope * i) + (i * 5)
+        predicted = max(20, min(500, round(predicted))) # Clamp between 20 Mbps to 500 Mbps
+        forecast_points.append(predicted)
+
+    return forecast_points

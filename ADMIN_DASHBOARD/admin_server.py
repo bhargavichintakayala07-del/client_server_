@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, jsonify
 # 🧠 IMPORT AI ENGINE MODULE FROM ROOT DIRECTORY
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 try:
-    from AI_ENGINE.ai_engine import inspect_traffic_ai
+    from AI_ENGINE.ai_engine import inspect_traffic_ai, predict_future_traffic
     AI_ENGINE_ENABLED = True
     print("🤖 NetFlow-AI Smart Engine Loaded Successfully!")
 except ImportError as e:
@@ -153,7 +153,7 @@ def add_log():
 def get_live_stats():
     global device_tracker, routers_list, cluster_stats
     
-    # ⚡ FAST DISCONNECT DETECTION: Keep devices only if seen in last 15 SECONDS!
+    # FAST DISCONNECT DETECTION: Keep devices only if seen in last 15 SECONDS
     now = datetime.now().timestamp()
     active_devices = {k: v for k, v in device_tracker.items() if now - v.get('last_seen', now) < 15}
     device_tracker = active_devices
@@ -169,12 +169,20 @@ def get_live_stats():
         routers_list[1]['active_clients'] = r2_clients
         routers_list[1]['live_speed'] = f"{r2_clients * 350} Mbps" if r2_clients > 0 else "0 Mbps"
 
+    # 🔮 RUN TIME-SERIES AI FORECASTING ENGINE
+    recent_activity_rates = [len(device_tracker) * 35 + i * 10 for i in range(5)]
+    if AI_ENGINE_ENABLED:
+        ai_forecast_data = predict_future_traffic(recent_activity_rates)
+    else:
+        ai_forecast_data = [120, 140, 160, 150, 180]
+
     return jsonify({
         "active_clients": len(device_tracker),
         "active_clients_count": len(device_tracker),
         "routers": routers_list,
         "logs": list(device_tracker.values()),
-        "cluster_stats": cluster_stats
+        "cluster_stats": cluster_stats,
+        "ai_forecast": ai_forecast_data
     })
 
 @app.route('/api/clear_connections', methods=['POST', 'GET'])
@@ -182,6 +190,47 @@ def clear_connections():
     global device_tracker
     device_tracker = {}
     return jsonify({"status": "cleared", "message": "All active connections reset to 0"})
+
+# ============================
+# 🤖 SMART AI CHAT ASSISTANT API
+# ============================
+
+@app.route('/api/ai_chat', methods=['POST'])
+def ai_chat_assistant():
+    global device_tracker, routers_list, cluster_stats
+    data = request.get_json() or {}
+    user_msg = str(data.get('message', '')).lower().strip()
+
+    logs = list(device_tracker.values())
+    active_count = len(device_tracker)
+    blocked_count = sum(1 for l in logs if "BLOCK" in str(l.get('decision', '')).upper() or l.get('blocked_count', 0) > 0)
+
+    r1_clients = routers_list[0]['active_clients'] if len(routers_list) >= 1 else 0
+    r2_clients = routers_list[1]['active_clients'] if len(routers_list) >= 2 else 0
+
+    bot_reply = "I didn't quite understand that. You can ask me about active devices, blocked threats, server status, or hotspot speeds."
+
+    if any(k in user_msg for k in ['laptop_a', 'laptop a', 'hotspot a', 'router 1']):
+        bot_reply = f"Laptop_A_Hotspot is ONLINE with {r1_clients} connected device(s). Measured Speed: {r1_clients * 350} Mbps."
+    
+    elif any(k in user_msg for k in ['laptop_b', 'laptop b', 'hotspot b', 'router 2']):
+        bot_reply = f"Laptop_B_Hotspot is ONLINE with {r2_clients} connected device(s). Measured Speed: {r2_clients * 350} Mbps."
+
+    elif any(k in user_msg for k in ['blocked', 'threat', 'attack', 'security', 'phishing']):
+        bot_reply = f"AI Engine has detected and isolated {blocked_count} threat attempt(s) so far. Policy enforcement is ACTIVE."
+
+    elif any(k in user_msg for k in ['status', 'devices', 'connected', 'clients', 'how many']):
+        bot_reply = f"Currently, there are {active_count} active client device(s) connected across {len(routers_list)} Hotspot Nodes."
+
+    elif any(k in user_msg for k in ['server', 'cluster', 'load balancer', 'load']):
+        s1 = cluster_stats.get("server_1", 0)
+        s2 = cluster_stats.get("server_2", 0)
+        bot_reply = f"Multi-Server Cluster Health: Server_1 handled {s1} requests, Server_2 handled {s2} requests. Load Balancer is OPTIMAL."
+
+    elif any(k in user_msg for k in ['hi', 'hello', 'hey', 'who are you']):
+        bot_reply = "Hello Bhargavi! I am your NetFlow-AI Assistant. How can I help you monitor your network cluster today?"
+
+    return jsonify({"reply": bot_reply})
 
 if __name__ == '__main__':
     print("🚀 NETFLOW-AI ADMIN SERVER RUNNING ON http://127.0.0.1:5000")

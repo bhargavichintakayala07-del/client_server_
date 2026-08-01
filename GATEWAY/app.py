@@ -175,13 +175,18 @@ def network_interceptor(path):
     client_ip = request.remote_addr
     target_domain = request.headers.get('Host', '') or path
 
+    # Extract Search query parameters if present (e.g., google.com/search?q=instagram)
+    full_query_url = request.url
+    
     extracted = tldextract.extract(target_domain)
     domain = f"{extracted.domain}.{extracted.suffix}" if extracted.suffix else target_domain
 
-    is_blocked, category_desc = evaluate_domain_policy(domain)
+    # Evaluate using query parameters or base domain
+    eval_target = full_query_url if ("q=" in full_query_url or "search=" in full_query_url) else domain
+    is_blocked, category_desc = evaluate_domain_policy(eval_target)
     current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
 
-    # Send activity log to Admin Dashboard with Gateway Host IP Source
+    # Send activity log to Admin Dashboard instantly
     try:
         res = requests.post(APP_SERVER_URL, json={
             "time": current_time,
@@ -189,11 +194,10 @@ def network_interceptor(path):
             "gateway_ip": LOCAL_HOST_IP,
             "router_id": CURRENT_ROUTER_ID,
             "router_name": CURRENT_ROUTER_NAME,
-            "url": target_domain if "q=" in target_domain else domain,
+            "url": eval_target,
             "category": category_desc,
-            "decision": "BLOCKED" if is_blocked else "ALLOWED"
+            "decision": "AI BLOCKED" if is_blocked else "ALLOWED"
         }, timeout=1.5)
-        print(f"📡 LOG SENT TO DASHBOARD [{CURRENT_ROUTER_NAME}] -> Domain: {domain} | Status: {res.status_code}")
     except Exception as err:
         print(f"⚠️ LOG ERROR: {err}")
 
@@ -206,18 +210,18 @@ def network_interceptor(path):
             <style>
                 body {{ background: #07080a; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; padding-top: 80px; }}
                 .box {{ background: #12161d; border: 1px solid rgba(239, 68, 68, 0.4); max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-                h1 {{ color: #ef4444; font-size: 26px; margin-bottom: 10px; }}
+                h1 {{ color: #ef4444; font-size: 24px; margin-bottom: 10px; }}
                 p {{ color: #8e95a5; font-size: 14px; line-height: 1.6; }}
                 .badge {{ background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; display: inline-block; margin-top: 15px; }}
             </style>
         </head>
         <body>
             <div class="box">
-                <h1>🚫 ACCESS RESTRICTED BY NETFLOW-AI</h1>
-                <p>The website <strong>{domain}</strong> is restricted on this academic hotspot network.</p>
+                <h1>🚫 SUSPICIOUS / RESTRICTED ACTIVITY DETECTED</h1>
+                <p>The access request for <strong>{domain}</strong> was flagged by AI Network Control.</p>
                 <div class="badge">{category_desc.upper()}</div>
                 <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                <p style="color: #10b981; font-size: 12px;">Only Educational, University, and Research domains are permitted.</p>
+                <p style="color: #10b981; font-size: 12px;">Non-academic high-bandwidth content is restricted on this hotspot node.</p>
             </div>
         </body>
         </html>

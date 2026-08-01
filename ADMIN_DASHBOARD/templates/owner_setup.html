@@ -110,22 +110,22 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Owner Full Name</label>
-                    <input type="text" id="ownerName" class="form-control" placeholder="Bhargavi" required>
+                    <input type="text" id="ownerName" class="form-control" placeholder="Enter Owner Full Name" required>
                 </div>
 
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="text" id="ownerPhone" class="form-control" placeholder="9999999999" required>
+                    <input type="text" id="ownerPhone" class="form-control" placeholder="Enter Phone Number" required>
                 </div>
 
                 <div class="form-group">
                     <label>City / Location</label>
-                    <input type="text" id="ownerCity" class="form-control" placeholder="Vijayawada" required>
+                    <input type="text" id="ownerCity" class="form-control" placeholder="Enter City / Location" required>
                 </div>
 
                 <div class="form-group">
                     <label>Organization Type</label>
-                    <input type="text" id="orgType" class="form-control" placeholder="NRI Institution" required>
+                    <input type="text" id="orgType" class="form-control" placeholder="Enter Organization Type" required>
                 </div>
 
                 <div class="form-group full-width">
@@ -157,9 +157,6 @@
             for (let i = 1; i <= count; i++) {
                 const block = document.createElement('div');
                 block.className = 'router-block';
-                
-                const defaultSsid = i === 1 ? 'Laptop_A_Hotspot' : (i === 2 ? 'CSM_Wi-Fi' : `Node_${i}_Net`);
-                const defaultIp = i === 1 ? '192.168.137.1' : `192.168.1.${i}`;
 
                 block.innerHTML = `
                     <div class="router-block-title">
@@ -168,15 +165,15 @@
                     <div class="form-grid" style="margin-bottom: 0;">
                         <div class="form-group">
                             <label>Router #${i} SSID / Name *</label>
-                            <input type="text" id="router_ssid_${i}" class="form-control" value="${defaultSsid}" placeholder="Enter SSID Name" required>
+                            <input type="text" id="router_ssid_${i}" class="form-control" placeholder="Enter Router #${i} SSID / Name" required>
                         </div>
                         <div class="form-group">
                             <label>Router #${i} Gateway IP *</label>
-                            <input type="text" id="router_ip_${i}" class="form-control" value="${defaultIp}" placeholder="192.168.137.1" required>
+                            <input type="text" id="router_ip_${i}" class="form-control" placeholder="e.g. 192.168.137.1" required>
                         </div>
                         <div class="form-group full-width">
                             <label>Router #${i} Security Password *</label>
-                            <input type="password" id="router_pwd_${i}" class="form-control" value="12345678" placeholder="Enter Wi-Fi password" required>
+                            <input type="password" id="router_pwd_${i}" class="form-control" placeholder="Enter Wi-Fi Password" required>
                         </div>
                     </div>
                 `;
@@ -218,7 +215,7 @@
                     alert('Save failed: ' + res.message);
                 }
             } catch (e) {
-                // If backend API isn't live yet, fallback direct redirect for UI preview
+                // Direct fallback redirect
                 window.location.href = '/dashboard';
             }
         }
